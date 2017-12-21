@@ -32,7 +32,7 @@ import time
 import glob
 import cv2
 import numpy as np
-from PIL import Image
+# from PIL import Image
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -44,6 +44,10 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
 
+import zipfile
+import urllib.request
+import shutil
+
 from config import Config
 import utils
 import model as modellib
@@ -54,13 +58,15 @@ ROOT_DIR = os.getcwd()
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
-# Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-
+# Directory to save logs and model checkpoints, if not provided
+# through the command line argument --logs
+DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
+DEFAULT_DATASET_YEAR = "2014"
 
 ############################################################
 #  Configurations
 ############################################################
+
 
 class CocoConfig(Config):
     """Configuration for training on MS COCO.
@@ -103,27 +109,31 @@ class CocoConfig(Config):
 ############################################################
 
 class CocoDataset(utils.Dataset):
-    def load_coco(self, dataset_dir, subset, class_ids=None,
-                  class_map=None, return_coco=False):
+    def load_coco(self, dataset_dir, subset, year=DEFAULT_DATASET_YEAR, class_ids=None,
+                  class_map=None, return_coco=False, auto_download=False):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val, minival, val35k)
+        subset: What to load (train, val, minival, valminusminival)
+        year: What dataset year to load (2014, 2017) as a string, not an integer
         class_ids: If provided, only loads images that have the given classes.
         class_map: TODO: Not implemented yet. Supports maping classes from
             different datasets to the same class ID.
         return_coco: If True, returns the COCO object.
+        auto_download: Automatically download and unzip MS-COCO images and annotations
         """
         # Path
-        image_dir = os.path.join(dataset_dir, "train2014" if subset == "train"
-                                 else "val2014")
-
-        # Create COCO object
-        json_path_dict = {
-            "train": "annotations/instances_train2014.json",
-            "val": "annotations/instances_val2014.json",
-            "minival": "annotations/instances_minival2014.json",
-            "val35k": "annotations/instances_valminusminival2014.json",
-        }
+        # image_dir = os.path.join(dataset_dir, "train2014" if subset == "train"
+        #                          else "val2014")
+        #
+        # # Create COCO object
+        # json_path_dict = {
+        #     "train": "annotations/instances_train2014.json",
+        #     "val": "annotations/instances_val2014.json",
+        #     "minival": "annotations/instances_minival2014.json",
+        #     "val35k": "annotations/instances_valminusminival2014.json",
+        # }
+        if auto_download is True:
+            self.auto_download(dataset_dir, subset, year)
         """
         coco = COCO(os.path.join(dataset_dir, json_path_dict[subset]))
 
@@ -142,7 +152,6 @@ class CocoDataset(utils.Dataset):
         else:
             # All images
             image_ids = list(coco.imgs.keys())
-
 
         # Add classes
         for i in class_ids:
@@ -243,7 +252,7 @@ class CocoDataset(utils.Dataset):
                 maskClasses[i] = 5
             i += 1
 
-        print('JEDEN HOTOV')
+        # print('JEDEN HOTOV')
         return np.array(mask), np.array(maskClasses)
 
         # for i in range(count - 2, -1, -1):
@@ -290,7 +299,7 @@ class CocoDataset(utils.Dataset):
         if info["source"] == "coco":
             return "http://cocodataset.org/#explore?id={}".format(info["id"])
         else:
-            super(self.__class__).image_reference(self, image_id)
+            super(CocoDataset, self).image_reference(self, image_id)
 
     # The following two functions are from pycocotools with a few changes.
 
@@ -354,14 +363,14 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
     return results
 
 
-def evaluate_coco(dataset, coco, eval_type="bbox", limit=0):
+def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with valiadtion data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
     limit: if not 0, it's the number of images to use for evaluation
     """
     # Pick COCO images from the dataset
-    image_ids = dataset.image_ids
+    image_ids = image_ids or dataset.image_ids
 
     # Limit to a subset
     if limit:
@@ -413,7 +422,6 @@ if __name__ == '__main__':
     import argparse
 
     # Parse command line arguments
-
     parser = argparse.ArgumentParser(
         description='Train Mask R-CNN on MS COCO.')
     parser.add_argument("command",
@@ -422,15 +430,33 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', required=True,
                         metavar="/path/to/coco/",
                         help='Directory of the MS-COCO dataset')
+    parser.add_argument('--year', required=False,
+                        default=DEFAULT_DATASET_YEAR,
+                        metavar="<year>",
+                        help='Year of the MS-COCO dataset (2014 or 2017) (default=2014)')
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
+    parser.add_argument('--logs', required=False,
+                        default=DEFAULT_LOGS_DIR,
+                        metavar="/path/to/logs/",
+                        help='Logs and checkpoints directory (default=logs/)')
+    parser.add_argument('--limit', required=False,
+                        default=500,
+                        metavar="<image count>",
+                        help='Images to use for evaluation (default=500)')
+    parser.add_argument('--download', required=False,
+                        default=False,
+                        metavar="<True|False>",
+                        help='Automatically download and unzip MS-COCO files (default=False)',
+                        type=bool)
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
     print("Dataset: ", args.dataset)
-
-    # args = {'command': 'train', 'model': 'coco', 'dataset': '/home/ondrej/workspace/Mask_RCNN/'}
+    print("Year: ", args.year)
+    print("Logs: ", args.logs)
+    print("Auto Download: ", args.download)
 
     # Configurations
     if args.command == "train":
@@ -441,16 +467,17 @@ if __name__ == '__main__':
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
+            DETECTION_MIN_CONFIDENCE = 0
         config = InferenceConfig()
     config.display()
 
     # Create model
     if args.command == "train":
         model = modellib.MaskRCNN(mode="training", config=config,
-                                  model_dir=MODEL_DIR)
+                                  model_dir=args.logs)
     else:
         model = modellib.MaskRCNN(mode="inference", config=config,
-                                  model_dir=MODEL_DIR)
+                                  model_dir=args.logs)
 
     # Select weights file to load
     if args.model.lower() == "coco":
@@ -469,22 +496,20 @@ if __name__ == '__main__':
     model.load_weights(model_path, by_name=True)#,exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",  "mrcnn_bbox", "mrcnn_mask"])
 
     # Train or evaluate
-
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
         dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train")
-        dataset_train.load_coco(args.dataset, "val35k")
+        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
+        dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
         dataset_train.prepare()
-
 
         # Validation dataset
         dataset_val = CocoDataset()
-        dataset_val.load_coco(args.dataset, "minival")
+        dataset_val.load_coco(args.dataset, "minival", year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
-        # This training schedule is an example. Update to fit your needs.
+        # *** This training schedule is an example. Update to your needs ***
 
         # Training - Stage 1
         # Adjust epochs and layers as needed
@@ -493,44 +518,30 @@ if __name__ == '__main__':
                     learning_rate=config.LEARNING_RATE,
                     epochs=70,#40,
                     layers='heads')
-        #"""
 
-        # CocoConfig.TRAIN_ROIS_PER_IMAGE = 16
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
-        print("Training Resnet layer 4+")
+        print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE / 1,#0,
-                    epochs=90,#100,
+                    learning_rate=config.LEARNING_RATE / 10, # without dividing in original
+                    epochs=90,#120,
                     layers='4+')
 
-        #CocoConfig.TRAIN_ROIS_PER_IMAGE = 1
-        # CocoConfig.IMAGE_MAX_DIM = 704
-        # CocoConfig.IMAGE_MIN_DIM = 700
-        # model.config.IMAGE_MAX_DIM = 704
-        # model.config.IMAGE_MIN_DIM = 700
-        # CocoConfig.IMAGE_SHAPE = np.array(
-        #     [CocoConfig.IMAGE_MAX_DIM, CocoConfig.IMAGE_MAX_DIM, 3])
-        # model.config.IMAGE_SHAPE = np.array(
-        #     [CocoConfig.IMAGE_MAX_DIM, CocoConfig.IMAGE_MAX_DIM, 3])
         # Training - Stage 3
-        # Finetune layers from ResNet stage 3 and up
-        print("Training Resnet layer 3+")
+        # Fine tune all layers
+        print("Fine tune all layers")
         model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE / 100,
-                    epochs=120,#200,
+                    learning_rate=config.LEARNING_RATE / 100, # just 10 original
+                    epochs=120,#160,
                     layers='all')
-        #"""
 
     elif args.command == "evaluate": # ********************************************* TO NE ****************************************
         # Validation dataset
         dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, "minival", return_coco=True)
+        coco = dataset_val.load_coco(args.dataset, "minival", year=args.year, return_coco=True, auto_download=args.download)
         dataset_val.prepare()
-
-        # TODO: evaluating on 500 images. Set to 0 to evaluate on all images.
-        evaluate_coco(dataset_val, coco, "bbox", limit=0)
+        print("Running COCO evaluation on {} images.".format(args.limit))
+        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'evaluate'".format(args.command))
-

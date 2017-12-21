@@ -16,6 +16,11 @@ import tensorflow as tf
 import scipy.misc
 import skimage.color
 import skimage.io
+import urllib.request
+import shutil
+
+# URL from which to download the latest COCO trained weights
+COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
 
 
 ############################################################
@@ -220,6 +225,7 @@ class Dataset(object):
 
     See COCODataset and ShapesDataset as examples.
     """
+
     def __init__(self, class_map=None):
         self._image_ids = []
         self.image_info = []
@@ -294,7 +300,7 @@ class Dataset(object):
     def map_source_class_id(self, source_class_id):
         """Takes a source class ID and returns the int class ID assigned to it.
 
-        For example: 
+        For example:
         dataset.map_source_class_id("coco.12") -> 23
         """
         return self.class_from_source_map[source_class_id]
@@ -433,6 +439,8 @@ def minimize_mask(bbox, mask, mini_shape):
         m = mask[:, :, i]
         y1, x1, y2, x2 = bbox[i][:4]
         m = m[y1:y2, x1:x2]
+        if m.size == 0:
+            raise Exception("Invalid bounding box with area of zero")
         m = scipy.misc.imresize(m.astype(float), mini_shape, interp='bilinear')
         mini_mask[:, :, i] = np.where(m >= 128, 1, 0)
     return mini_mask
@@ -604,7 +612,7 @@ def compute_ap(gt_boxes, gt_class_ids,
                 break
 
     # Compute precision and recall at each prediction box step
-    precisions = np.cumsum(pred_match) / (np.arange(len(pred_match))+1)
+    precisions = np.cumsum(pred_match) / (np.arange(len(pred_match)) + 1)
     recalls = np.cumsum(pred_match).astype(np.float32) / len(gt_match)
 
     # Pad with start and end values to simplify the math
@@ -614,12 +622,13 @@ def compute_ap(gt_boxes, gt_class_ids,
     # Ensure precision values decrease but don't increase. This way, the
     # precision value at each recall threshold is the maximum it can be
     # for all following recall thresholds, as specified by the VOC paper.
-    for i in range(len(precisions)-2, -1, -1):
-        precisions[i] = np.maximum(precisions[i], precisions[i+1])
+    for i in range(len(precisions) - 2, -1, -1):
+        precisions[i] = np.maximum(precisions[i], precisions[i + 1])
 
     # Compute mean AP over recall range
     indices = np.where(recalls[:-1] != recalls[1:])[0] + 1
-    mAP = np.sum((recalls[indices] - recalls[indices - 1]) * precisions[indices])
+    mAP = np.sum((recalls[indices] - recalls[indices - 1]) *
+                 precisions[indices])
 
     return mAP, precisions, recalls, overlaps
 
@@ -684,3 +693,16 @@ def batch_slice(inputs, graph_fn, batch_size, names=None):
         result = result[0]
 
     return result
+
+
+def download_trained_weights(coco_model_path, verbose=1):
+    """Download COCO trained weights from Releases.
+
+    coco_model_path: local path of COCO trained weights
+    """
+    if verbose > 0:
+        print("Downloading pretrained model to " + coco_model_path + " ...")
+    with urllib.request.urlopen(COCO_MODEL_URL) as resp, open(coco_model_path, 'wb') as out:
+        shutil.copyfileobj(resp, out)
+    if verbose > 0:
+        print("... done downloading pretrained model!")

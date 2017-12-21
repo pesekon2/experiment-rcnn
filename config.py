@@ -46,7 +46,7 @@ class Config(object):
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows
     # down the training.
-    VALIDATION_STPES = 50
+    VALIDATION_STEPS = 50
 
     # The strides of each layer of the FPN Pyramid. These values
     # are based on a Resnet101 backbone.
@@ -66,7 +66,11 @@ class Config(object):
     # Anchor stride
     # If 1 then anchors are created for each cell in the backbone feature map.
     # If 2, then anchors are created for every other cell, and so on.
-    RPN_ANCHOR_STRIDE = 1#2#from fix
+    RPN_ANCHOR_STRIDE = 1 # 2 before change
+
+    # Non-max suppression threshold to filter RPN proposals.
+    # You can reduce this during training to generate more propsals.
+    RPN_NMS_THRESHOLD = 0.7
 
     # How many anchors per image to use for RPN training
     RPN_TRAIN_ANCHORS_PER_IMAGE = 256
@@ -93,7 +97,11 @@ class Config(object):
     MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
 
     # Number of ROIs per image to feed to classifier/mask heads
-    TRAIN_ROIS_PER_IMAGE = 128  # TODO: paper uses 512
+    # The Mask RCNN paper uses 512 but often the RPN doesn't generate
+    # enough positive proposals to fill this and keep a positive:negative
+    # ratio of 1:3. You can increase the number of proposals by adjusting
+    # the RPN NMS threshold.
+    TRAIN_ROIS_PER_IMAGE = 200
 
     # Percent of positive ROIs used to train classifier/mask heads
     ROI_POSITIVE_RATIO = 0.33
@@ -121,8 +129,10 @@ class Config(object):
     DETECTION_NMS_THRESHOLD = 0.3
 
     # Learning rate and momentum
-    # The paper uses lr=0.02, but we found that to cause weights to explode often
-    LEARNING_RATE = 0.002
+    # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
+    # weights to explode. Likely due to differences in optimzer
+    # implementation.
+    LEARNING_RATE = 0.001 # 0.002 before change
     LEARNING_MOMENTUM = 0.9
 
     # Weight decay regularization
