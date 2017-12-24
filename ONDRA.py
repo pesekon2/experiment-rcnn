@@ -96,8 +96,8 @@ class CocoConfig(Config):
     #IMAGE_MIN_DIM = 800
     #IMAGE_MAX_DIM = 1280
     #IMAGE_MAX_DIM = 1024
-    IMAGE_MAX_DIM = 704
-    IMAGE_MIN_DIM = 700
+    IMAGE_MAX_DIM = 256*3#704
+    IMAGE_MIN_DIM = 256*3#700
     #MAX_GT_INSTANCES = 1
 
 
@@ -208,52 +208,80 @@ class CocoDataset(utils.Dataset):
         """
         # If not a COCO image, delegate to parent class.
         print(self.image_info[image_id]["annotations"])
-        maskImage = cv2.imread(self.image_info[image_id]["annotations"])
-        maskClasses = list()
-        maskClassesCount = 0
-        mask = list()
+        info = self.image_info[image_id]
 
+        imgDir = os.path.join(ROOT_DIR, 'train-images', info['id'])
+        wildcard = os.path.join(imgDir, "*.png")
 
-        index = 0
-        first = True
-        for i in range(maskImage.shape[0]):
-            mask.append([])
-            for j in range(maskImage.shape[1]):
-                color = maskImage[i, j].tolist()
-                if color not in maskClasses:
-                    maskClasses.append(color)
-                    maskClassesCount += 1
-                    if first is False:
-                        for k in range(index + 1):
-                            mask[k] = np.append(mask[k], [[0]] * len(mask[k]), axis=1).tolist()
-                    else:
-                        first = False
+        maskCount = 0
+        for filePath in glob.glob(wildcard):
+            filename = os.path.split(filePath)[1]
+            parts = filename.split("-")
+            if (len(parts) == 3) and parts[1] in featureNames:
+                maskCount += 1
 
-                mask[index].append([0] * maskClassesCount)
-                mask[index][-1][maskClasses.index(color)] = 1
+        mask = np.zeros([256*3, 256*3, maskCount],
+                        dtype=np.uint8)
+        class_ids = np.zeros((maskCount), np.int32)
 
-            index += 1
-            # if index % 1000 == 0:
-            #     print(index)
+        count = 0
+        for filePath in glob.glob(wildcard):
+            filename = os.path.split(filePath)[1]
+            parts = filename.split("-")
+            if (len(parts) == 3) and parts[1] in featureNames:
+                imgPath = filePath
+                mask[:, :, count] = skimage.io.imread(filePath)
+                class_ids[count] = featureNames[parts[1]]
+                count += 1
 
-        i = 0
-        for color in maskClasses:
-            if color == [255, 0, 0]:
-                maskClasses[i] = 0
-            elif color == [255, 255, 255]:
-                maskClasses[i] = 1
-            elif color == [0, 0, 255]:
-                maskClasses[i] = 2
-            elif color == [0, 255, 255]:
-                maskClasses[i] = 3
-            elif color == [0, 255, 0]:
-                maskClasses[i] = 4
-            elif color == [255, 255, 0]:
-                maskClasses[i] = 5
-            i += 1
+        return mask, class_ids
 
-        # print('JEDEN HOTOV')
-        return np.array(mask), np.array(maskClasses)
+        # maskImage = cv2.imread(self.image_info[image_id]["annotations"])
+        # maskClasses = list()
+        # maskClassesCount = 0
+        # mask = list()
+        #
+        #
+        # index = 0
+        # first = True
+        # for i in range(maskImage.shape[0]):
+        #     mask.append([])
+        #     for j in range(maskImage.shape[1]):
+        #         color = maskImage[i, j].tolist()
+        #         if color not in maskClasses:
+        #             maskClasses.append(color)
+        #             maskClassesCount += 1
+        #             if first is False:
+        #                 for k in range(index + 1):
+        #                     mask[k] = np.append(mask[k], [[0]] * len(mask[k]), axis=1).tolist()
+        #             else:
+        #                 first = False
+        #
+        #         mask[index].append([0] * maskClassesCount)
+        #         mask[index][-1][maskClasses.index(color)] = 1
+        #
+        #     index += 1
+        #     # if index % 1000 == 0:
+        #     #     print(index)
+        #
+        # i = 0
+        # for color in maskClasses:
+        #     if color == [255, 0, 0]:
+        #         maskClasses[i] = 0
+        #     elif color == [255, 255, 255]:
+        #         maskClasses[i] = 1
+        #     elif color == [0, 0, 255]:
+        #         maskClasses[i] = 2
+        #     elif color == [0, 255, 255]:
+        #         maskClasses[i] = 3
+        #     elif color == [0, 255, 0]:
+        #         maskClasses[i] = 4
+        #     elif color == [255, 255, 0]:
+        #         maskClasses[i] = 5
+        #     i += 1
+        #
+        # # print('JEDEN HOTOV')
+        # return np.array(mask), np.array(maskClasses)
 
         # for i in range(count - 2, -1, -1):
         #     mask[:, :, i] = mask[:, :, i] * occlusion
