@@ -33,10 +33,11 @@ MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 # Path to trained weights file
 # Download this file and place in the root of your 
 # project (See README file for details)
-COCO_MODEL_PATH = os.path.join('/home/ondrej/workspace/Mask_RCNN/logs/ondra20171214T1416', 'mask_rcnn_ondra_0060.h5')# ROOT_DIR, "mask_rcnn_coco.h5")
+COCO_MODEL_PATH = os.path.join('/home/ondrej/workspace/images-to-osm/logs/osm images baseball,basketball,tennis20171228T1335/'
+                       'mask_rcnn_osm images baseball,basketball,tennis_0001.h5')# ROOT_DIR, "mask_rcnn_coco.h5")
 
 # Directory of images to run detection on
-IMAGE_DIR = '/home/ondrej/Downloads/ann/2_zkouska'# os.path.join(ROOT_DIR, "images")
+IMAGE_DIR = '/media/ondrej/1C88C77F88C75644/train-dir/033623'# os.path.join(ROOT_DIR, "images")
 
 # ## Configurations
 # 
@@ -52,8 +53,8 @@ class InferenceConfig(coco.CocoConfig):
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
-    NUM_CLASSES = 6
-    NAME = 'ondra'
+    NUM_CLASSES = 3
+    NAME = 'OSM Images Baseball,Basketball,Tennis'
 
 config = InferenceConfig()
 config.display()
@@ -96,7 +97,7 @@ model.load_weights(COCO_MODEL_PATH, by_name=True)#,exclude=["mrcnn_class_logits"
 # COCO Class names
 # Index of the class in the list is its ID. For example, to get ID of
 # the teddy bear class, use: class_names.index('teddy bear')
-class_names = ['BG', 'impervious', 'building', 'vegetation', 'tree', 'car']
+class_names = ['BG', 'tennis', 'soccer']
 
 
 # ## Run Object Detection
@@ -106,7 +107,8 @@ class_names = ['BG', 'impervious', 'building', 'vegetation', 'tree', 'car']
 
 # Load a random image from the images folder
 file_names = next(os.walk(IMAGE_DIR))[2]
-image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
+a= random.choice(file_names)
+image = skimage.io.imread(os.path.join(IMAGE_DIR, a))
 
 # Run detection
 results = model.detect([image], verbose=1)
@@ -115,6 +117,7 @@ results = model.detect([image], verbose=1)
 r = results[0]
 print('Stat:', image, r['rois'], r['masks'], r['class_ids'],
                             class_names, r['scores'])
+print(a)
 print('NEXT VISUALIZE')
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
                             class_names, r['scores'])

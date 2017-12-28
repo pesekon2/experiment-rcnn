@@ -157,11 +157,13 @@ class CocoDataset(utils.Dataset):
         for i in class_ids:
             self.add_class("ondra", i, coco.loadCats(i)[0]["name"])
         """
-        self.add_class("ondra", 1, "impervious")
-        self.add_class("ondra", 2, "building")
-        self.add_class("ondra", 3, "vegetation")
-        self.add_class("ondra", 4, "tree")
-        self.add_class("ondra", 5, "car")
+        self.add_class("ondra", 1, "tennis")
+        self.add_class("ondra", 2, "soccer")
+        # self.add_class("ondra", 1, "impervious")
+        # self.add_class("ondra", 2, "building")
+        # self.add_class("ondra", 3, "vegetation")
+        # self.add_class("ondra", 4, "tree")
+        # self.add_class("ondra", 5, "car")
 
         i = 0
         if subset == 'train':
@@ -169,16 +171,16 @@ class CocoDataset(utils.Dataset):
                 self.add_image(
                     'ondra',
                     image_id=i,
-                    path='{}'.format(filename),
-                    annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
+                    path='{}'.format(filename))#,
+                    #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
                 i += 1
         elif subset == 'minival':
             for filename in glob.iglob('/home/ondrej/Downloads/ann/2/*.tif'):
                 self.add_image(
                     'ondra',
                     image_id=i,
-                    path='{}'.format(filename),
-                    annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
+                    path='{}'.format(filename))#,
+                    #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
                 i += 1
 
         """
@@ -207,7 +209,7 @@ class CocoDataset(utils.Dataset):
         class_ids: a 1D array of class IDs of the instance masks.
         """
         # If not a COCO image, delegate to parent class.
-        print(self.image_info[image_id]["annotations"])
+        # print(self.image_info[image_id]["annotations"])
         info = self.image_info[image_id]
 
         imgDir = os.path.join(ROOT_DIR, 'train-images', info['id'])
@@ -544,7 +546,7 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=70,#40,
+                    epochs=20,#40,
                     layers='heads')
 
         # Training - Stage 2
@@ -552,7 +554,7 @@ if __name__ == '__main__':
         print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE / 10, # without dividing in original
-                    epochs=90,#120,
+                    epochs=50,#120,
                     layers='4+')
 
         # Training - Stage 3
@@ -560,7 +562,7 @@ if __name__ == '__main__':
         print("Fine tune all layers")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE / 100, # just 10 original
-                    epochs=120,#160,
+                    epochs=100,#160,
                     layers='all')
 
     elif args.command == "evaluate": # ********************************************* TO NE ****************************************
