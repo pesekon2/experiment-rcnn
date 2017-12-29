@@ -33,6 +33,8 @@ import glob
 import cv2
 import numpy as np
 # from PIL import Image
+from random import shuffle
+import skimage
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -51,6 +53,8 @@ import shutil
 from config import Config
 import utils
 import model as modellib
+
+from sys import exit
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
@@ -84,10 +88,12 @@ class CocoConfig(Config):
     # GPU_COUNT = 8
 
     # Number of classes (including background)
-    NUM_CLASSES = 6 # COCO has 80 classes
+    NUM_CLASSES = 3 # COCO has 80 classes
     TRAIN_ROIS_PER_IMAGE = 8#32
-    STEPS_PER_EPOCH = 100
-    #VALIDATION_STPES = 1
+    STEPS_PER_EPOCH = 1500 // IMAGES_PER_GPU
+    MINI_MASK_SHAPE = (128, 128)
+    VALIDATION_STEPS = 100
+
     #RPN_TRAIN_ANCHORS_PER_IMAGE = 1
     #POST_NMS_ROIS_TRAINING = 1
     #POST_NMS_ROIS_INFERENCE = 1
@@ -109,8 +115,7 @@ class CocoConfig(Config):
 ############################################################
 
 class CocoDataset(utils.Dataset):
-    def load_coco(self, dataset_dir, subset, year=DEFAULT_DATASET_YEAR, class_ids=None,
-                  class_map=None, return_coco=False, auto_download=False):
+    def load_coco(self, classes, subset):#, year=DEFAULT_DATASET_YEAR, class_ids=None, class_map=None, return_coco=False, auto_download=False):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
         subset: What to load (train, val, minival, valminusminival)
@@ -132,8 +137,8 @@ class CocoDataset(utils.Dataset):
         #     "minival": "annotations/instances_minival2014.json",
         #     "val35k": "annotations/instances_valminusminival2014.json",
         # }
-        if auto_download is True:
-            self.auto_download(dataset_dir, subset, year)
+        # if auto_download is True:
+        #     self.auto_download(dataset_dir, subset, year)
         """
         coco = COCO(os.path.join(dataset_dir, json_path_dict[subset]))
 
@@ -157,31 +162,42 @@ class CocoDataset(utils.Dataset):
         for i in class_ids:
             self.add_class("ondra", i, coco.loadCats(i)[0]["name"])
         """
-        self.add_class("ondra", 1, "tennis")
-        self.add_class("ondra", 2, "soccer")
+        self.classes = {'BG': 0}
+        for i in range(1, len(classes) + 1):
+            self.add_class('ondra', i, classes[i - 1])
+            self.classes.update({classes[i - 1]: i})
+
+        # self.add_class("ondra", 1, "tennis")
+        # self.add_class("ondra", 2, "soccer")
         # self.add_class("ondra", 1, "impervious")
         # self.add_class("ondra", 2, "building")
         # self.add_class("ondra", 3, "vegetation")
         # self.add_class("ondra", 4, "tree")
         # self.add_class("ondra", 5, "car")
 
-        i = 0
-        if subset == 'train':
-            for filename in glob.iglob('/home/ondrej/Downloads/ann/2_Ortho_RGB2/*.tif'):
-                self.add_image(
-                    'ondra',
-                    image_id=i,
-                    path='{}'.format(filename))#,
-                    #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
-                i += 1
-        elif subset == 'minival':
-            for filename in glob.iglob('/home/ondrej/Downloads/ann/2/*.tif'):
-                self.add_image(
-                    'ondra',
-                    image_id=i,
-                    path='{}'.format(filename))#,
-                    #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
-                i += 1
+        for path in subset:
+            for image in glob.iglob(os.path.join(path, '*.jpg')):
+                self.add_image('ondra', image_id = os.path.split(path)[1], path=image)
+
+        # exit(0)
+        #
+        # i = 0
+        # if subset == 'train':
+        #     for filename in glob.iglob('/home/ondrej/Downloads/ann/2_Ortho_RGB2/*.tif'):
+        #         self.add_image(
+        #             'ondra',
+        #             image_id=i,
+        #             path='{}'.format(filename))#,
+        #             #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
+        #         i += 1
+        # elif subset == 'minival':
+        #     for filename in glob.iglob('/home/ondrej/Downloads/ann/2/*.tif'):
+        #         self.add_image(
+        #             'ondra',
+        #             image_id=i,
+        #             path='{}'.format(filename))#,
+        #             #annotations='/home/ondrej/Downloads/ann/5_Labels_for_participants/{}label.tif'.format(filename.split('/')[-1][:-7]))
+        #         i += 1
 
         """
         # Add images
@@ -193,8 +209,8 @@ class CocoDataset(utils.Dataset):
                 height=coco.imgs[i]["height"],
                 annotations=coco.loadAnns(coco.getAnnIds(imgIds=[i], iscrowd=False)))
         """
-        if return_coco:
-            return coco
+        # if return_coco:
+        #     return coco
 
     def load_mask(self, image_id):
         """Load instance masks for the given image.
@@ -211,6 +227,30 @@ class CocoDataset(utils.Dataset):
         # If not a COCO image, delegate to parent class.
         # print(self.image_info[image_id]["annotations"])
         info = self.image_info[image_id]
+
+        a = glob.glob(os.path.join(os.path.split(info['path'])[0], '*.png'))
+        maskImage = skimage.io.imread(a[0])
+        mask = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
+        maskAppend = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
+        print('class name: {}'.format(a[0].split('-')[-2]))
+        print('*' * 200)
+        print('infos: {}'.format(self.classes))
+        print('infos index: {}'.format(self.classes[a[0].split('-')[-2]]))
+        class_ids = np.array([self.classes[a[0].split('-')[-2]]])
+        mask[:, :, 0] = maskImage
+
+        for i in range(1, len(a)):
+            np.append(class_ids, self.classes[a[i].split('-')[-2]])
+            maskAppend[:, :, 0] = skimage.io.imread(a[i])
+            np.concatenate(mask, maskAppend, 2)
+
+        print(class_ids)
+
+        print(mask)
+        exit(0)
+
+        return mask, class_ids
+
 
         imgDir = os.path.join(ROOT_DIR, 'train-images', info['id'])
         wildcard = os.path.join(imgDir, "*.png")
@@ -515,28 +555,40 @@ if __name__ == '__main__':
     elif args.model.lower() == "last":
         # Find last trained weights
         model_path = model.find_last()[1]
-    elif args.model.lower() == "imagenet":
-        # Start from ImageNet trained weights
-        model_path = model.get_imagenet_weights()
     else:
-        model_path = args.model
+        raise AttributeError('Model not known')  # model_path = args.model
 
     # Load weights
+    images = list()
+    for root, subdirs, _ in os.walk(args.dataset):
+        if not subdirs:
+            images.append(root)
+
+    shuffle(images)
+
+    testImagesThreshold = int(len(images) * .9)
+    evalImagesThreshold = int(testImagesThreshold * .75)
+    trainImages = images[:evalImagesThreshold]
+    evalImages = images[evalImagesThreshold:testImagesThreshold]
+
+    print('Unused images: {}'.format(images[testImagesThreshold:]))
+    classes = ['tennis', 'soccer']
+
     print("Loading weights ", model_path)
-    model.load_weights(model_path, by_name=True)#,exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",  "mrcnn_bbox", "mrcnn_mask"])
+    # model.load_weights(model_path, by_name=True)#,exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",  "mrcnn_bbox", "mrcnn_mask"])
 
     # Train or evaluate
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
         dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
-        dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
+        dataset_train.load_coco(classes, trainImages)#, year=args.year, auto_download=args.download)
+        # dataset_train.load_coco(args.dataset, "valminusminival")#, year=args.year, auto_download=args.download)
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = CocoDataset()
-        dataset_val.load_coco(args.dataset, "minival", year=args.year, auto_download=args.download)
+        dataset_val.load_coco(classes, evalImages)#"minival", year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
         # *** This training schedule is an example. Update to your needs ***
