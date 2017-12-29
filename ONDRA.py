@@ -89,7 +89,7 @@ class CocoConfig(Config):
 
     # Number of classes (including background)
     NUM_CLASSES = 3 # COCO has 80 classes
-    TRAIN_ROIS_PER_IMAGE = 8#32
+    TRAIN_ROIS_PER_IMAGE = 64#32
     STEPS_PER_EPOCH = 1500 // IMAGES_PER_GPU
     MINI_MASK_SHAPE = (128, 128)
     VALIDATION_STEPS = 100
@@ -232,22 +232,13 @@ class CocoDataset(utils.Dataset):
         maskImage = skimage.io.imread(a[0])
         mask = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
         maskAppend = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
-        print('class name: {}'.format(a[0].split('-')[-2]))
-        print('*' * 200)
-        print('infos: {}'.format(self.classes))
-        print('infos index: {}'.format(self.classes[a[0].split('-')[-2]]))
         class_ids = np.array([self.classes[a[0].split('-')[-2]]])
         mask[:, :, 0] = maskImage
 
         for i in range(1, len(a)):
             np.append(class_ids, self.classes[a[i].split('-')[-2]])
             maskAppend[:, :, 0] = skimage.io.imread(a[i])
-            np.concatenate(mask, maskAppend, 2)
-
-        print(class_ids)
-
-        print(mask)
-        exit(0)
+            np.concatenate((mask, maskAppend), 2)
 
         return mask, class_ids
 
