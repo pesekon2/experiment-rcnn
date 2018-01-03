@@ -33,11 +33,11 @@ MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 # Path to trained weights file
 # Download this file and place in the root of your 
 # project (See README file for details)
-COCO_MODEL_PATH = os.path.join('/home/ondrej/workspace/images-to-osm/logs/osm images baseball,basketball,tennis20171228T1335/'
-                       'mask_rcnn_osm images baseball,basketball,tennis_0001.h5')# ROOT_DIR, "mask_rcnn_coco.h5")
+COCO_MODEL_PATH = os.path.join('/home/ondrej/workspace/experiment-rcnn/logs/ondra20171230T1710/'
+                       'mask_rcnn_ondra_0100.h5')# ROOT_DIR, "mask_rcnn_coco.h5")
 
 # Directory of images to run detection on
-IMAGE_DIR = '/media/ondrej/1C88C77F88C75644/train-dir/033623'# os.path.join(ROOT_DIR, "images")
+IMAGE_DIR = '/media/ondrej/1C88C77F88C75644/train-dir/046703'# os.path.join(ROOT_DIR, "images")
 
 # ## Configurations
 # 
