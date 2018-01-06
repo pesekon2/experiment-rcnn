@@ -111,9 +111,9 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     ax.axis('off')
     ax.set_title(title)
 
-    masked_image = image.astype(np.uint32).copy()
+    masked_image = np.zeros(image.shape)#astype(np.uint32).copy()
     for i in range(N):
-        color = colors[i]
+        color = (1, 1, 1)#colors[i]
 
         # Bounding box
         if not np.any(boxes[i]):
@@ -151,7 +151,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8), interpolation='nearest')
     ax.set(xlim=[0, width], ylim=[height, 0], aspect=1)
-    plt.savefig('/home/ondrej/workspace/experiment-rcnn/outputs/3.jpg', dpi=dpi)
+    plt.savefig('/home/ondrej/workspace/experiment-rcnn/outputs/3', dpi=dpi)
     plt.show()
     plt.close()
 
