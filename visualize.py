@@ -85,22 +85,29 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     figsize: (optional) the size of the image.
     """
     # Number of instances
+
+    dpi = 80
+    height, width = image.shape[:2]
+    figsize = width / float(dpi), height / float(dpi)
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_axes([0, 0, 1, 1])
+
     N = boxes.shape[0]
     if not N:
         print("\n*** No instances to display *** \n")
     else:
         assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
 
-    if not ax:
-        _, ax = plt.subplots(1, figsize=figsize)
+    #if not ax:
+    #    _, ax = plt.subplots(1, figsize=figsize)
 
     # Generate random colors
     colors = random_colors(N)
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
-    ax.set_ylim(height + 10, -10)
-    ax.set_xlim(-10, width + 10)
+    #ax.set_ylim(height + 10, -10)
+    #ax.set_xlim(-10, width + 10)
     ax.axis('off')
     ax.set_title(title)
 
@@ -142,8 +149,9 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             verts = np.fliplr(verts) - 1
             p = Polygon(verts, facecolor="none", edgecolor=color)
             ax.add_patch(p)
-    ax.imshow(masked_image.astype(np.uint8))
-    plt.savefig('/home/ondrej/workspace/experiment-rcnn/outputs/3.jpg')
+    ax.imshow(masked_image.astype(np.uint8), interpolation='nearest')
+    ax.set(xlim=[0, width], ylim=[height, 0], aspect=1)
+    plt.savefig('/home/ondrej/workspace/experiment-rcnn/outputs/3.jpg', dpi=dpi)
     plt.show()
     plt.close()
 
