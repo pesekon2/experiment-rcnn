@@ -112,32 +112,29 @@ class Dataset(utils.Dataset):
 ############################################################
 
 
-def train(dataset, weights, logs=DEFAULT_LOGS_DIR):
+def train(dataset, modelPath, classes, logs=DEFAULT_LOGS_DIR, epochs=200,
+          steps_per_epoch=3000, ROIsPerImage=64):
 
-    print("Model: ", weights)
+    print("Model: ", modelPath)
     print("Dataset: ", dataset)
     print("Logs: ", logs)
+    print(steps_per_epoch, type(steps_per_epoch))
 
     # Configurations
     # TODO: Make parameters from these given in Config
     config = ModelConfig(name='ondra', imagesPerGPU=1, GPUcount=1, numClasses=3,
-                    trainROIsPerImage=64, stepsPerEpoch=1500,
+                    trainROIsPerImage=ROIsPerImage, stepsPerEpoch=steps_per_epoch,
                     miniMaskShape=(128, 128), validationSteps=100,
                     imageMaxDim=256*3, imageMinDim=256*3)
     config.display()
 
+    print(classes, type(classes))
+
+    raise SystemExit(0)
+
     # Create model
     model = modellib.MaskRCNN(mode="training", config=config,
                               model_dir=logs)
-
-    # Select weights file to load
-    if weights.lower() == "coco":
-        model_path = COCO_MODEL_PATH
-    elif weights.lower() == "last":
-        # Find last trained weights
-        model_path = model.find_last()[1]
-    else:
-        model_path = weights
 
     # Load weights
     images = list()
@@ -156,16 +153,15 @@ def train(dataset, weights, logs=DEFAULT_LOGS_DIR):
     with open('/home/ondrej/unused.txt', 'w') as unused:
         for filename in images[testImagesThreshold:]:
             unused.write('{}\n'.format(filename))
-    classes = ['tennis', 'soccer']
 
-    print("Loading weights ", model_path)
+    print("Loading weights ", modelPath)
     # TODO: Make as a parameter
-    if weights.lower() == "coco":
-        model.load_weights(model_path, by_name=True,
+    if "coco.h5" in modelPath:
+        model.load_weights(modelPath, by_name=True,
                            exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
                                     "mrcnn_bbox", "mrcnn_mask"])
     else:
-        model.load_weights(model_path, by_name=True)
+        model.load_weights(modelPath, by_name=True)
 
     # Training dataset. Use the training set and 35K from the
     # validation set, as as in the Mask RCNN paper.
@@ -178,14 +174,12 @@ def train(dataset, weights, logs=DEFAULT_LOGS_DIR):
     dataset_val.load(classes, evalImages)
     dataset_val.prepare()
 
-    raise SystemExit(0)
-
     # Training - Stage 1
     # Adjust epochs and layers as needed
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=70,#40,
+                epochs=int(epochs / 7),
                 layers='heads')
 
     # Training - Stage 2
@@ -193,7 +187,7 @@ def train(dataset, weights, logs=DEFAULT_LOGS_DIR):
     print("Fine tune Resnet stage 4 and up")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE / 10, # without dividing in original
-                epochs=100,#120,
+                epochs=int(epochs / 7) * 3,
                 layers='4+')
 
     # Training - Stage 3
@@ -201,7 +195,7 @@ def train(dataset, weights, logs=DEFAULT_LOGS_DIR):
     print("Fine tune all layers")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE / 100, # just 10 original
-                epochs=149,#160,
+                epochs=epochs,
                 layers='all')
 
 if __name__ == '__main__':
@@ -215,12 +209,24 @@ if __name__ == '__main__':
                         help='Directory of the MS-COCO dataset')
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
-                        help="Path to weights .h5 file or 'coco'")
+                        help="Path to weights .h5 file")
+    parser.add_argument('--classes', required=True,
+                        help="Names of classes")
     parser.add_argument('--logs', required=False,
                         default=DEFAULT_LOGS_DIR,
                         metavar="/path/to/logs/",
                         help='Logs and checkpoints directory (default=logs/)')
+    parser.add_argument('--epochs', required=False,
+                        default=200, type=int,
+                        help='Number of epochs')
+    parser.add_argument('--steps_per_epoch', required=False,
+                        default=3000, type=int,
+                        help='Number of steps per each epoch')
+    parser.add_argument('--rois_per_image', required=False,
+                        default=64, type=int,
+                        help='Number of ROIs trained per each image')
 
     args = parser.parse_args()
 
-    train(args.dataset, args.model, args.logs)
+    train(args.dataset, args.model, args.classes.split(','), args.logs, args.epochs,
+          args.steps_per_epoch, args.rois_per_image)

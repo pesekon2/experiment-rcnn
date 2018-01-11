@@ -24,15 +24,51 @@
 #% label: Path to the dataset with images and masks
 #% required: yes
 #%end
-#%option G_OPT_V_OUTPUT
-#% key: output
-#%end
 #%option
 #% key: model
-#% label: Which model to use
+#% type: string
+#% label: Path to the .h5 file to use as initial values
 #% required: yes
-#% options: coco, last
 #% multiple: no
+#%end
+#%option G_OPT_M_DIR
+#% key: logs
+#% label: Path to the directory in which will be models saved
+#% required: yes
+#%end
+#%option
+#% key: classes
+#% type: string
+#% label: Names of classes separated with ","
+#% required: yes
+#% multiple: yes
+#%end
+#%option
+#% key: epochs
+#% type: integer
+#% label: Number of epochs
+#% required: no
+#% multiple: no
+#% answer: 200
+#% guisection: Training parameters
+#%end
+#%option
+#% key: steps_per_epoch
+#% type: integer
+#% label: Steps per each epoch
+#% required: no
+#% multiple: no
+#% answer: 3000
+#% guisection: Training parameters
+#%end
+#%option
+#% key: rois_per_image
+#% type: integer
+#% label: How many ROIs train per image
+#% required: no
+#% multiple: no
+#% answer: 64
+#% guisection: Training parameters
 #%end
 
 
@@ -57,7 +93,11 @@ def main(options, flags):
 
     dataset = options['training_dataset']
     initialWeights = options['model']
+    classes = options['classes']
     logs = "/home/ondrej/workspace/experiment-rcnn/logs"
+    epochs = int(options['epochs'])
+    stepsPerEpoch = int(options['steps_per_epoch'])
+    ROIsPerImage = int(options['rois_per_image'])
 
     print("Model: ", initialWeights)
     print("Dataset: ", dataset)
@@ -66,9 +106,17 @@ def main(options, flags):
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
-    print('python3 {}{}py3train.py'.format(path, os.sep))
-    call('python3 {}{}py3train.py --dataset={} --model={} --logs={}'.format(
-            path, os.sep, dataset, initialWeights, logs),
+    call('python3 {}{}py3train.py --dataset={} --model={} --logs={} '
+         '--epochs={} --steps_per_epoch={} --classes={} '
+         '--rois_per_image={}'.format(
+            path, os.sep,
+            dataset,
+            initialWeights,
+            logs,
+            epochs,
+            stepsPerEpoch,
+            classes,
+            ROIsPerImage),
          shell=True)
 
 
