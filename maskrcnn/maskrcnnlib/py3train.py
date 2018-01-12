@@ -60,7 +60,8 @@ class Dataset(utils.Dataset):
 
         for directory in directories:
             for image in glob.iglob(os.path.join(directory, '*.jpg')):
-                self.add_image(modelName, image_id = os.path.split(path)[1],
+                self.add_image(modelName,
+                               image_id = os.path.split(directory)[1],
                                path=image)
 
 
