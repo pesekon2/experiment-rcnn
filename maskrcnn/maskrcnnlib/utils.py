@@ -342,23 +342,51 @@ class Dataset(object):
         if image.ndim != 3:
             image = skimage.color.gray2rgb(image)
         return image
+    def import_contains(self, classes, directories, modelName):
+        """
+        Initialize an empty Dataset class with classes and images
+        :param classes: List of classes names
+        :param directories: List of directories containing training images
+        :param modelName: Name of model
+        """
 
-    def load_mask(self, image_id):
+        self.classes = {'BG': 0}
+        for i in range(1, len(classes) + 1):
+            self.add_class(modelName, i, classes[i - 1])
+            self.classes.update({classes[i - 1]: i})
+
+        for directory in directories:
+            for image in glob.iglob(os.path.join(directory, '*.jpg')):
+                self.add_image(modelName,
+                               image_id = os.path.split(directory)[1],
+                               path=image)
+
+    def get_mask(self, image_id):
         """Load instance masks for the given image.
 
-        Different datasets use different ways to store masks. Override this
-        method to load instance masks and return them in the form of am
-        array of binary masks of shape [height, width, instances].
+        Different datasets use different ways to store masks. This
+        function converts the different mask format to one format
+        in the form of a bitmap [height, width, instances].
 
         Returns:
-            masks: A bool array of shape [height, width, instance count] with
-                a binary mask per instance.
-            class_ids: a 1D array of class IDs of the instance masks.
+        masks: A bool array of shape [height, width, instance count] with
+            one mask per instance.
+        class_ids: a 1D array of class IDs of the instance masks.
         """
-        # Override this function to load a mask from your dataset.
-        # Otherwise, it returns an empty mask.
-        mask = np.empty([0, 0, 0])
-        class_ids = np.empty([0], np.int32)
+        info = self.image_info[image_id]
+
+        a = glob.glob(os.path.join(os.path.split(info['path'])[0], '*.png'))
+        maskImage = skimage.io.imread(a[0])
+        mask = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
+        maskAppend = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
+        class_ids = np.array([self.classes[a[0].split('-')[-2]]])
+        mask[:, :, 0] = maskImage
+
+        for i in range(1, len(a)):
+            np.append(class_ids, self.classes[a[i].split('-')[-2]])
+            maskAppend[:, :, 0] = skimage.io.imread(a[i])
+            np.concatenate((mask, maskAppend), 2)
+
         return mask, class_ids
 
 

@@ -42,58 +42,6 @@ import model as modellib
 from sys import exit
 
 
-#  Dataset
-
-class Dataset(utils.Dataset):
-    def import_contains(self, classes, directories, modelName):
-        """
-        Initialize an empty Dataset class with classes and images
-        :param classes: List of classes names
-        :param directories: List of directories containing training images
-        :param modelName: Name of model
-        """
-
-        self.classes = {'BG': 0}
-        for i in range(1, len(classes) + 1):
-            self.add_class(modelName, i, classes[i - 1])
-            self.classes.update({classes[i - 1]: i})
-
-        for directory in directories:
-            for image in glob.iglob(os.path.join(directory, '*.jpg')):
-                self.add_image(modelName,
-                               image_id = os.path.split(directory)[1],
-                               path=image)
-
-
-    def load_mask(self, image_id):
-        """Load instance masks for the given image.
-
-        Different datasets use different ways to store masks. This
-        function converts the different mask format to one format
-        in the form of a bitmap [height, width, instances].
-
-        Returns:
-        masks: A bool array of shape [height, width, instance count] with
-            one mask per instance.
-        class_ids: a 1D array of class IDs of the instance masks.
-        """
-        info = self.image_info[image_id]
-
-        a = glob.glob(os.path.join(os.path.split(info['path'])[0], '*.png'))
-        maskImage = skimage.io.imread(a[0])
-        mask = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
-        maskAppend = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
-        class_ids = np.array([self.classes[a[0].split('-')[-2]]])
-        mask[:, :, 0] = maskImage
-
-        for i in range(1, len(a)):
-            np.append(class_ids, self.classes[a[i].split('-')[-2]])
-            maskAppend[:, :, 0] = skimage.io.imread(a[i])
-            np.concatenate((mask, maskAppend), 2)
-
-        return mask, class_ids
-
-
 #  Training
 
 def train(dataset, modelPath, classes, logs, modelName, epochs=200,
@@ -117,7 +65,7 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
                          imageMinDim=256*3)
     config.display()
 
-    raise SystemExit(0)
+    # raise SystemExit(0)
 
     # Create model
     model = modellib.MaskRCNN(mode="training", config=config,
@@ -152,12 +100,12 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
 
     # Training dataset. Use the training set and 35K from the
     # validation set, as as in the Mask RCNN paper.
-    dataset_train = Dataset()
+    dataset_train = utils.Dataset()
     dataset_train.import_contains(classes, trainImages, modelName)
     dataset_train.prepare()
 
     # Validation dataset
-    dataset_val = Dataset()
+    dataset_val = utils.Dataset()
     dataset_val.import_contains(classes, evalImages, modelName)
     dataset_val.prepare()
 

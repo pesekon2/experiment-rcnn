@@ -19,6 +19,10 @@
 #% keyword: vector
 #% keyword: raster
 #%end
+#%flag
+#%  key: s
+#%  description: Save also a list of images unused for training to logs dir?
+#%end
 #%option G_OPT_M_DIR
 #% key: training_dataset
 #% label: Path to the dataset with images and masks
@@ -105,6 +109,7 @@ def main(options, flags):
     epochs = int(options['epochs'])
     stepsPerEpoch = int(options['steps_per_epoch'])
     ROIsPerImage = int(options['rois_per_image'])
+    print(flags)
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
