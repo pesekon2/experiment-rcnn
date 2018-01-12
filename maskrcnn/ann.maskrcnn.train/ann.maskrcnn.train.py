@@ -111,8 +111,9 @@ def main(options, flags):
     ROIsPerImage = int(options['rois_per_image'])
 
     flagsString = ''
-    for flag in flags.items():
-        flagsString += flag
+    for flag, value in flags.items():
+        if value is True:
+            flagsString += flag
 
     ###########################################################
     # unfortunately, redirect everything to python3
