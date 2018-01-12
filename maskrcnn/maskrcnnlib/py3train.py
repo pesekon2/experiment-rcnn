@@ -65,7 +65,7 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
                          imageMinDim=256*3)
     config.display()
 
-    # raise SystemExit(0)
+    raise SystemExit(0)
 
     # Create model
     model = modellib.MaskRCNN(mode="training", config=config,
@@ -171,4 +171,4 @@ if __name__ == '__main__':
 
     train(args.dataset, args.model, args.classes.split(','), args.logs,
           args.name, args.epochs, args.steps_per_epoch, args.rois_per_image,
-          flags)
+          args.flags)

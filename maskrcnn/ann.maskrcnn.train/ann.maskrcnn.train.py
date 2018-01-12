@@ -115,6 +115,9 @@ def main(options, flags):
         if value is True:
             flagsString += flag
 
+    print(flags)
+    print(flagsString)
+
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
@@ -130,7 +133,7 @@ def main(options, flags):
             stepsPerEpoch,
             classes,
             ROIsPerImage,
-            flags),
+            flagsString),
          shell=True)
 
 
