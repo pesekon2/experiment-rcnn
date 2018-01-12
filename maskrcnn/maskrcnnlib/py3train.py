@@ -20,7 +20,6 @@ import time
 import glob
 import cv2
 import numpy as np
-# from PIL import Image
 from random import shuffle
 import skimage
 
@@ -42,41 +41,27 @@ import model as modellib
 
 from sys import exit
 
-# Root directory of the project
-ROOT_DIR = os.getcwd()
 
-# Path to trained weights file
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
-
-# Directory to save logs and model checkpoints, if not provided
-# through the command line argument --logs
-DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
-
-
-############################################################
 #  Dataset
-############################################################
 
 class Dataset(utils.Dataset):
-    def load(self, classes, subset):
-        """Load a subset of the COCO dataset.
-        dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val, minival, valminusminival)
-        year: What dataset year to load (2014, 2017) as a string, not an integer
-        class_ids: If provided, only loads images that have the given classes.
-        class_map: TODO: Not implemented yet. Supports maping classes from
-            different datasets to the same class ID.
-        return_coco: If True, returns the COCO object.
-        auto_download: Automatically download and unzip MS-COCO images and annotations
+    def import_contains(self, classes, directories, modelName):
         """
+        Initialize an empty Dataset class with classes and images
+        :param classes: List of classes names
+        :param directories: List of directories containing training images
+        :param modelName: Name of model
+        """
+
         self.classes = {'BG': 0}
         for i in range(1, len(classes) + 1):
-            self.add_class('ondra', i, classes[i - 1])
+            self.add_class(modelName, i, classes[i - 1])
             self.classes.update({classes[i - 1]: i})
 
-        for path in subset:
-            for image in glob.iglob(os.path.join(path, '*.jpg')):
-                self.add_image('ondra', image_id = os.path.split(path)[1], path=image)
+        for directory in directories:
+            for image in glob.iglob(os.path.join(directory, '*.jpg')):
+                self.add_image(modelName, image_id = os.path.split(path)[1],
+                               path=image)
 
 
     def load_mask(self, image_id):
@@ -107,28 +92,29 @@ class Dataset(utils.Dataset):
 
         return mask, class_ids
 
-############################################################
+
 #  Training
-############################################################
 
-
-def train(dataset, modelPath, classes, logs=DEFAULT_LOGS_DIR, epochs=200,
+def train(dataset, modelPath, classes, logs, modelName, epochs=200,
           steps_per_epoch=3000, ROIsPerImage=64):
 
     print("Model: ", modelPath)
     print("Dataset: ", dataset)
     print("Logs: ", logs)
-    print(steps_per_epoch, type(steps_per_epoch))
 
     # Configurations
-    # TODO: Make parameters from these given in Config
-    config = ModelConfig(name='ondra', imagesPerGPU=1, GPUcount=1, numClasses=3,
-                    trainROIsPerImage=ROIsPerImage, stepsPerEpoch=steps_per_epoch,
-                    miniMaskShape=(128, 128), validationSteps=100,
-                    imageMaxDim=256*3, imageMinDim=256*3)
+    # TODO: Make as user parameters
+    config = ModelConfig(name=modelName,
+                         imagesPerGPU=1,
+                         GPUcount=1,
+                         numClasses=len(classes) + 1,
+                         trainROIsPerImage=ROIsPerImage,
+                         stepsPerEpoch=steps_per_epoch,
+                         miniMaskShape=(128, 128),
+                         validationSteps=100,
+                         imageMaxDim=256*3,
+                         imageMinDim=256*3)
     config.display()
-
-    print(classes, type(classes))
 
     raise SystemExit(0)
 
@@ -166,12 +152,12 @@ def train(dataset, modelPath, classes, logs=DEFAULT_LOGS_DIR, epochs=200,
     # Training dataset. Use the training set and 35K from the
     # validation set, as as in the Mask RCNN paper.
     dataset_train = Dataset()
-    dataset_train.load(classes, trainImages)
+    dataset_train.import_contains(classes, trainImages, modelName)
     dataset_train.prepare()
 
     # Validation dataset
     dataset_val = Dataset()
-    dataset_val.load(classes, evalImages)
+    dataset_val.import_contains(classes, evalImages, modelName)
     dataset_val.prepare()
 
     # Training - Stage 1
@@ -212,10 +198,11 @@ if __name__ == '__main__':
                         help="Path to weights .h5 file")
     parser.add_argument('--classes', required=True,
                         help="Names of classes")
-    parser.add_argument('--logs', required=False,
-                        default=DEFAULT_LOGS_DIR,
+    parser.add_argument('--logs', required=True,
                         metavar="/path/to/logs/",
-                        help='Logs and checkpoints directory (default=logs/)')
+                        help='Logs and checkpoints directory')
+    parser.add_argument('--name', required=True,
+                        help='Name of output models')
     parser.add_argument('--epochs', required=False,
                         default=200, type=int,
                         help='Number of epochs')
@@ -228,5 +215,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train(args.dataset, args.model, args.classes.split(','), args.logs, args.epochs,
-          args.steps_per_epoch, args.rois_per_image)
+    train(args.dataset, args.model, args.classes.split(','), args.logs,
+          args.name, args.epochs, args.steps_per_epoch, args.rois_per_image)

@@ -18,34 +18,9 @@ import numpy as np
 
 
 class ModelConfig(object):
-    """Base configuration class. For custom configurations, create a
-    sub-class that inherits from this one and override properties
-    that need to be changed.
     """
-    # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
-    # Useful if your code needs to do things differently depending on which
-    # experiment is running.
-
-    # TO BE MODIFIED IN INIT:
-
-    # # Give the configuration a recognizable name
-    # NAME = "ondra"
-    #
-    # # We use a GPU with 12GB memory, which can fit two images.
-    # # Adjust down if you use a smaller GPU.
-    # IMAGES_PER_GPU = 1
-    #
-    # # NUMBER OF GPUs to use. For CPU training, use 1
-    # GPU_COUNT = 1
-    #
-    # # Number of classes (including background)
-    # NUM_CLASSES = 3 # COCO has 80 classes
-    # TRAIN_ROIS_PER_IMAGE = 64#32
-    # STEPS_PER_EPOCH = 1500 // IMAGES_PER_GPU
-    # MINI_MASK_SHAPE = (128, 128)
-    # VALIDATION_STEPS = 100
-    # IMAGE_MAX_DIM = 256*3#704
-    # IMAGE_MIN_DIM = 256*3#700
+    Base configuration class.
+    """
 
     # NOT RECOMMENDED TO MODIFY:
 

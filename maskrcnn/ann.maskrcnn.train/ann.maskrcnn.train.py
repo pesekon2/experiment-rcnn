@@ -31,17 +31,23 @@
 #% required: yes
 #% multiple: no
 #%end
-#%option G_OPT_M_DIR
-#% key: logs
-#% label: Path to the directory in which will be models saved
-#% required: yes
-#%end
 #%option
 #% key: classes
 #% type: string
 #% label: Names of classes separated with ","
 #% required: yes
 #% multiple: yes
+#%end
+#%option G_OPT_M_DIR
+#% key: logs
+#% label: Path to the directory in which will be models saved
+#% required: yes
+#%end
+#%option
+#% key: name
+#% type: string
+#% label: Name for output models
+#% required: yes
 #%end
 #%option
 #% key: epochs
@@ -94,15 +100,11 @@ def main(options, flags):
     dataset = options['training_dataset']
     initialWeights = options['model']
     classes = options['classes']
+    name = options['name']
     logs = "/home/ondrej/workspace/experiment-rcnn/logs"
     epochs = int(options['epochs'])
     stepsPerEpoch = int(options['steps_per_epoch'])
     ROIsPerImage = int(options['rois_per_image'])
-
-    print("Model: ", initialWeights)
-    print("Dataset: ", dataset)
-    print("Logs: ", logs)
-
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
@@ -113,6 +115,7 @@ def main(options, flags):
             dataset,
             initialWeights,
             logs,
+            name,
             epochs,
             stepsPerEpoch,
             classes,
