@@ -109,7 +109,7 @@ def main(options, flags):
     # unfortunately, redirect everything to python3
     ###########################################################
     call('python3 {}{}py3train.py --dataset={} --model={} --logs={} '
-         '--epochs={} --steps_per_epoch={} --classes={} '
+         '--name={} --epochs={} --steps_per_epoch={} --classes={} '
          '--rois_per_image={}'.format(
             path, os.sep,
             dataset,
