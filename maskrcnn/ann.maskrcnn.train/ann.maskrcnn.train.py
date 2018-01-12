@@ -21,7 +21,7 @@
 #%end
 #%flag
 #%  key: s
-#%  description: Save also a list of images unused for training to logs dir?
+#%  description: Save also a list of images unused for training to logs dir
 #%end
 #%option G_OPT_M_DIR
 #% key: training_dataset
@@ -109,13 +109,17 @@ def main(options, flags):
     epochs = int(options['epochs'])
     stepsPerEpoch = int(options['steps_per_epoch'])
     ROIsPerImage = int(options['rois_per_image'])
-    print(flags)
+
+    flagsString = ''
+    for flag in flags.items():
+        flagsString += flag
+
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
     call('python3 {}{}py3train.py --dataset={} --model={} --logs={} '
          '--name={} --epochs={} --steps_per_epoch={} --classes={} '
-         '--rois_per_image={}'.format(
+         '--rois_per_image={} --flags={}'.format(
             path, os.sep,
             dataset,
             initialWeights,
@@ -124,7 +128,8 @@ def main(options, flags):
             epochs,
             stepsPerEpoch,
             classes,
-            ROIsPerImage),
+            ROIsPerImage,
+            flags),
          shell=True)
 
 

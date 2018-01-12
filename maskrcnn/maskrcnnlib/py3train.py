@@ -17,11 +17,11 @@
 import os
 import sys
 import time
-import glob
 import cv2
 import numpy as np
 from random import shuffle
 import skimage
+import argparse
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -45,7 +45,7 @@ from sys import exit
 #  Training
 
 def train(dataset, modelPath, classes, logs, modelName, epochs=200,
-          steps_per_epoch=3000, ROIsPerImage=64):
+          steps_per_epoch=3000, ROIsPerImage=64, flags=''):
 
     print("Model: ", modelPath)
     print("Dataset: ", dataset)
@@ -79,15 +79,18 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
 
     shuffle(images)
 
-    testImagesThreshold = int(len(images) * .9)
+    if 's' in flags:
+        testImagesThreshold = int(len(images) * .9)
+        print('List of unused images saved in the logs file')
+        with open(logs, 'w') as unused:
+            for filename in images[testImagesThreshold:]:
+                unused.write('{}\n'.format(filename))
+    else:
+        testImagesThreshold = len(images)
+
     evalImagesThreshold = int(testImagesThreshold * .75)
     trainImages = images[:evalImagesThreshold]
     evalImages = images[evalImagesThreshold:testImagesThreshold]
-
-    print('List of unused images saved in: /home/ondrej/unused.txt')
-    with open('/home/ondrej/unused.txt', 'w') as unused:
-        for filename in images[testImagesThreshold:]:
-            unused.write('{}\n'.format(filename))
 
     print("Loading weights ", modelPath)
     # TODO: Make as a parameter
@@ -134,7 +137,6 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
                 layers='all')
 
 if __name__ == '__main__':
-    import argparse
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -161,8 +163,12 @@ if __name__ == '__main__':
     parser.add_argument('--rois_per_image', required=False,
                         default=64, type=int,
                         help='Number of ROIs trained per each image')
+    parser.add_argument('--flags', required=False,
+                        default='',
+                        help='Flags')
 
     args = parser.parse_args()
 
     train(args.dataset, args.model, args.classes.split(','), args.logs,
-          args.name, args.epochs, args.steps_per_epoch, args.rois_per_image)
+          args.name, args.epochs, args.steps_per_epoch, args.rois_per_image,
+          flags)
