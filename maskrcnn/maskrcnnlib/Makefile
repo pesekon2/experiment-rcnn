@@ -3,7 +3,7 @@ MODULE_TOPDIR = ../../..
 include $(MODULE_TOPDIR)/include/Make/Other.make
 include $(MODULE_TOPDIR)/include/Make/Python.make
 
-MODULES = __init__ py3train \
+MODULES = __init__ py3train py3detect \
  config utils model parallel_model visualize
 
 ETCDIR = $(ETC)/maskrcnn

@@ -19,13 +19,9 @@
 #% keyword: vector
 #% keyword: raster
 #%end
-#%flag
-#%  key: s
-#%  description: Save also a list of images unused for training to logs dir
-#%end
 #%option G_OPT_M_DIR
-#% key: training_dataset
-#% label: Path to the dataset with images and masks
+#% key: images_directory
+#% label: Path to a directory with images to detect
 #% required: yes
 #%end
 #%option
@@ -42,43 +38,17 @@
 #% required: yes
 #% multiple: yes
 #%end
-#%option G_OPT_M_DIR
-#% key: logs
-#% label: Path to the directory in which will be models saved
-#% required: yes
-#%end
 #%option
 #% key: name
 #% type: string
 #% label: Name for output models
 #% required: yes
 #%end
-#%option
-#% key: epochs
-#% type: integer
-#% label: Number of epochs
-#% required: no
-#% multiple: no
-#% answer: 200
-#% guisection: Training parameters
-#%end
-#%option
-#% key: steps_per_epoch
-#% type: integer
-#% label: Steps per each epoch
-#% required: no
-#% multiple: no
-#% answer: 3000
-#% guisection: Training parameters
-#%end
-#%option
-#% key: rois_per_image
-#% type: integer
-#% label: How many ROIs train per image
-#% required: no
-#% multiple: no
-#% answer: 64
-#% guisection: Training parameters
+#%option G_OPT_M_DIR
+#% key: maks_output
+#% type: string
+#% label: Directory where masks will be saved
+#% required: yes
 #%end
 
 
@@ -92,7 +62,6 @@ path = get_lib_path(modname='maskrcnn', libname='py3train')
 if path is None:
     grass.script.fatal('Not able to find the maskrcnn library directory.')
 
-
 ###########################################################
 # unfortunately, it needs python3, see file py3train.py
 ###########################################################
@@ -102,36 +71,24 @@ if path is None:
 
 def main(options, flags):
 
-    dataset = options['training_dataset']
-    initialWeights = options['model']
+    imagesDir = options['images_directory']
+    modelPath = options['model']
     classes = options['classes']
     name = options['name']
-    logs = options['logs']
-    epochs = int(options['epochs'])
-    stepsPerEpoch = int(options['steps_per_epoch'])
-    ROIsPerImage = int(options['rois_per_image'])
-
-    flagsString = ''
-    for flag, value in flags.items():
-        if value is True:
-            flagsString += flag
+    # TODO: Use GRASS temp files
+    masksDir = options['mask_output']
 
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
-    call('python3 {}{}py3train.py --dataset={} --model={} --logs={} '
-         '--name={} --epochs={} --steps_per_epoch={} --classes={} '
-         '--rois_per_image={} --flags={}'.format(
+    call('python3 {}{}py3train.py --images_dir={} --model={} --classes={} '
+         '--name={} --masks_dir={}'.format(
             path, os.sep,
-            dataset,
-            initialWeights,
-            logs,
-            name,
-            epochs,
-            stepsPerEpoch,
+            imagesDir,
+            modelPath,
             classes,
-            ROIsPerImage,
-            flagsString),
+            name,
+            masksDir),
          shell=True)
 
 
