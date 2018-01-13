@@ -105,7 +105,7 @@ def main(options, flags):
     initialWeights = options['model']
     classes = options['classes']
     name = options['name']
-    logs = "/home/ondrej/workspace/experiment-rcnn/logs"
+    logs = options['logs']
     epochs = int(options['epochs'])
     stepsPerEpoch = int(options['steps_per_epoch'])
     ROIsPerImage = int(options['rois_per_image'])
@@ -114,9 +114,6 @@ def main(options, flags):
     for flag, value in flags.items():
         if value is True:
             flagsString += flag
-
-    print(flags)
-    print(flagsString)
 
     ###########################################################
     # unfortunately, redirect everything to python3
