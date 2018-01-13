@@ -23,14 +23,6 @@ from random import shuffle
 import skimage
 import argparse
 
-# Download and install the Python COCO tools from https://github.com/waleedka/coco
-# That's a fork from the original https://github.com/pdollar/coco with a bug
-# fix for Python 3.
-# Note: Edit PythonAPI/Makefile and replace "python" with "python3".
-# from pycocotools.coco import COCO
-# from pycocotools.cocoeval import COCOeval
-# from pycocotools import mask as maskUtils
-
 import zipfile
 import urllib.request
 import shutil
@@ -42,13 +34,9 @@ import model as modellib
 from sys import exit
 
 
-#  Training
-
 def train(dataset, modelPath, classes, logs, modelName, epochs=200,
           steps_per_epoch=3000, ROIsPerImage=64, flags=''):
 
-    print("Model: ", modelPath)
-    print("Dataset: ", dataset)
     print("Logs: ", logs)
 
     # Configurations
@@ -65,33 +53,13 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
                          imageMinDim=256*3)
     config.display()
 
-    raise SystemExit(0)
+    # raise SystemExit(0)
 
     # Create model
     model = modellib.MaskRCNN(mode="training", config=config,
                               model_dir=logs)
 
     # Load weights
-    images = list()
-    for root, subdirs, _ in os.walk(dataset):
-        if not subdirs:
-            images.append(root)
-
-    shuffle(images)
-
-    if 's' in flags:
-        testImagesThreshold = int(len(images) * .9)
-        print('List of unused images saved in the logs file')
-        with open(logs, 'w') as unused:
-            for filename in images[testImagesThreshold:]:
-                unused.write('{}\n'.format(filename))
-    else:
-        testImagesThreshold = len(images)
-
-    evalImagesThreshold = int(testImagesThreshold * .75)
-    trainImages = images[:evalImagesThreshold]
-    evalImages = images[evalImagesThreshold:testImagesThreshold]
-
     print("Loading weights ", modelPath)
     # TODO: Make as a parameter
     if "coco.h5" in modelPath:
@@ -101,13 +69,36 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
     else:
         model.load_weights(modelPath, by_name=True)
 
-    # Training dataset. Use the training set and 35K from the
-    # validation set, as as in the Mask RCNN paper.
+    print('Reading images from dataset ', dataset)
+    images = list()
+    for root, subdirs, _ in os.walk(dataset):
+        if not subdirs:
+            # TODO: More structures
+            images.append(root)
+
+    shuffle(images)
+
+    if 's' in flags:
+        # Write list of unused images to logs
+        testImagesThreshold = int(len(images) * .9)
+        print('List of unused images saved in the logs directory '
+              'as "unused.txt"')
+        with open(os.path.join(logs, 'unused.txt'), 'w') as unused:
+            for filename in images[testImagesThreshold:]:
+                unused.write('{}\n'.format(filename))
+    else:
+        testImagesThreshold = len(images)
+
+    evalImagesThreshold = int(testImagesThreshold * .75)
+
+    # Training dataset
+    trainImages = images[:evalImagesThreshold]
     dataset_train = utils.Dataset()
     dataset_train.import_contains(classes, trainImages, modelName)
     dataset_train.prepare()
 
     # Validation dataset
+    evalImages = images[evalImagesThreshold:testImagesThreshold]
     dataset_val = utils.Dataset()
     dataset_val.import_contains(classes, evalImages, modelName)
     dataset_val.prepare()
@@ -124,7 +115,7 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
     # Finetune layers from ResNet stage 4 and up
     print("Fine tune Resnet stage 4 and up")
     model.train(dataset_train, dataset_val,
-                learning_rate=config.LEARNING_RATE / 10, # without dividing in original
+                learning_rate=config.LEARNING_RATE / 10, # no dividing original
                 epochs=int(epochs / 7) * 3,
                 layers='4+')
 

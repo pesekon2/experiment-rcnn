@@ -5,6 +5,7 @@ Common utility functions and classes.
 Copyright (c) 2017 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
+Modified by Ondrej Pesek
 """
 
 import sys
@@ -21,7 +22,7 @@ import shutil
 import glob
 
 # URL from which to download the latest COCO trained weights
-COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
+# https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5
 
 
 ############################################################
@@ -212,19 +213,8 @@ def box_refinement(box, gt_box):
 ############################################################
 
 class Dataset(object):
-    """The base class for dataset classes.
-    To use it, create a new class that adds functions specific to the dataset
-    you want to use. For example:
-
-    class CatsAndDogsDataset(Dataset):
-        def load_cats_and_dogs(self):
-            ...
-        def load_mask(self, image_id):
-            ...
-        def image_reference(self, image_id):
-            ...
-
-    See COCODataset and ShapesDataset as examples.
+    """
+    The base class for dataset classes.
     """
 
     def __init__(self, class_map=None):
@@ -283,8 +273,9 @@ class Dataset(object):
         self.num_images = len(self.image_info)
         self._image_ids = np.arange(self.num_images)
 
-        self.class_from_source_map = {"{}.{}".format(info['source'], info['id']): id
-                                      for info, id in zip(self.class_info, self.class_ids)}
+        self.class_from_source_map = {
+            "{}.{}".format(info['source'], info['id']): id for info, id in zip(
+                self.class_info, self.class_ids)}
 
         # Map sources to class_ids they support
         self.sources = list(set([i['source'] for i in self.class_info]))
@@ -299,7 +290,8 @@ class Dataset(object):
                     self.source_class_ids[source].append(i)
 
     def map_source_class_id(self, source_class_id):
-        """Takes a source class ID and returns the int class ID assigned to it.
+        """
+        Takes a source class ID and returns the int class ID assigned to it.
 
         For example:
         dataset.map_source_class_id("coco.12") -> 23
@@ -307,7 +299,10 @@ class Dataset(object):
         return self.class_from_source_map[source_class_id]
 
     def get_source_class_id(self, class_id, source):
-        """Map an internal class ID to the corresponding class ID in the source dataset."""
+        """
+        Map an internal class ID to the corresponding class ID in the source
+        dataset.
+        """
         info = self.class_info[class_id]
         assert info['source'] == source
         return info['id']
@@ -329,8 +324,8 @@ class Dataset(object):
 
     def source_image_link(self, image_id):
         """Returns the path or URL to the image.
-        Override this to return a URL to the image if it's availble online for easy
-        debugging.
+        Override this to return a URL to the image if it's availble online for
+        easy debugging.
         """
         return self.image_info[image_id]["path"]
 
@@ -343,6 +338,7 @@ class Dataset(object):
         if image.ndim != 3:
             image = skimage.color.gray2rgb(image)
         return image
+
     def import_contains(self, classes, directories, modelName):
         """
         Initialize an empty Dataset class with classes and images
@@ -357,16 +353,18 @@ class Dataset(object):
             self.classes.update({classes[i - 1]: i})
 
         for directory in directories:
+            # TODO: Other types than jpg
             for image in glob.iglob(os.path.join(directory, '*.jpg')):
+                # TODO: Smarter image_id than name of directory
                 self.add_image(modelName,
                                image_id = os.path.split(directory)[1],
                                path=image)
 
     def get_mask(self, image_id):
-        """Load instance masks for the given image.
+        """
+        Load instance masks for the given image.
 
-        Different datasets use different ways to store masks. This
-        function converts the different mask format to one format
+        This function converts the different mask format to one format
         in the form of a bitmap [height, width, instances].
 
         Returns:
@@ -374,8 +372,10 @@ class Dataset(object):
             one mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.
         """
+
         info = self.image_info[image_id]
 
+        # TODO: drop self.classes and use self.class_info
         a = glob.glob(os.path.join(os.path.split(info['path'])[0], '*.png'))
         maskImage = skimage.io.imread(a[0])
         mask = np.zeros([maskImage.shape[0], maskImage.shape[1], 1])
@@ -722,16 +722,3 @@ def batch_slice(inputs, graph_fn, batch_size, names=None):
         result = result[0]
 
     return result
-
-
-def download_trained_weights(coco_model_path, verbose=1):
-    """Download COCO trained weights from Releases.
-
-    coco_model_path: local path of COCO trained weights
-    """
-    if verbose > 0:
-        print("Downloading pretrained model to " + coco_model_path + " ...")
-    with urllib.request.urlopen(COCO_MODEL_URL) as resp, open(coco_model_path, 'wb') as out:
-        shutil.copyfileobj(resp, out)
-    if verbose > 0:
-        print("... done downloading pretrained model!")
