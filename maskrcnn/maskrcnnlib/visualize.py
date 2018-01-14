@@ -1,11 +1,16 @@
-"""
-Mask R-CNN
-Display and Visualization Functions.
-
-Copyright (c) 2017 Matterport, Inc.
-Licensed under the MIT License (see LICENSE for details)
-Written by Waleed Abdulla
-"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+############################################################################
+#
+# MODULE:	    ann.maskrcnn visualize
+# PURPOSE:	    Functions to export mask or bbox used in ann.maskrcnn.* modules
+# WRITTEN:  	2017 Ondrej Pesek
+#                    Based on visualize.py by Waleed Abdulla (Matterport, Inc.)
+#                       https://github.com/matterport/Mask_RCNN
+# Licensed under the MIT License (see LICENSE for details)
+#
+#############################################################################
 
 import random
 import itertools
@@ -123,9 +128,9 @@ def save_instances(image, boxes, masks, class_ids, class_names,
             color = (1, 1, 1)
             #color = colors[i]
             color = colors[class_ids[i]]
-            print(color)
-            print(class_ids)
-            print(i)
+            # print(color)
+            # print(class_ids)
+            # print(i)
 
             # Bounding box
             if not np.any(boxes[i]):
