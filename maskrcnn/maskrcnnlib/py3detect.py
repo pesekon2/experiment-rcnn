@@ -1,56 +1,42 @@
-
-# coding: utf-8
-
-# # Mask R-CNN Demo
-# 
-# A quick intro to using the pre-trained model to detect and segment objects.
-
-# In[ ]:
+#!/usr/bin/env python
+#
+############################################################################
+#
+# MODULE:	    py3train
+# AUTHOR(S):	Ondrej Pesek <pesej.ondrek@gmail.com>
+# PURPOSE:	    A python3 script called to train your Mask R-CNN network
+# COPYRIGHT:	(C) 2017 Ondrej Pesek and the GRASS Development Team
+#
+#		This program is free software under the GNU General
+#		Public License (>=v2). Read the file COPYING that
+#		comes with GRASS for details.
+#
+#############################################################################
 
 
 import os
 import sys
 import random
 import math
+import argparse
 import numpy as np
 import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
 
-import coco
 import utils
 import model as modellib
 import visualize
+from config import ModelConfig
 
 
+# Create Model and Load Trained Weights
 
-# ## Configurations
-# 
-# We'll be using a model trained on the MS-COCO dataset. The configurations of this model are in the ```CocoConfig``` class in ```coco.py```.
-# 
-# For inferencing, modify the configurations a bit to fit the task. To do so, sub-class the ```CocoConfig``` class and override the attributes you need to change.
-
-# In[ ]:
-
-
-class InferenceConfig(coco.CocoConfig):
-    # Set batch size to 1 since we'll be running inference on
-    # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    NUM_CLASSES = 3
-    NAME = 'ondra'
-
-config = InferenceConfig()
-config.display()
-
-# ## Create Model and Load Trained Weights
-
-# In[ ]:
-
-def detect(imagesDir, modelPath, classes, name, masksDir):
+def detect(imagesDir, modelPath, classes, name, masksDir, outputType):
     # Create model object in inference mode.
-    model = modellib.MaskRCNN(mode="inference", model_dir=modelPath, config=config)
+    config = ModelConfig(name=name, numClasses=len(classes) + 1)
+    model = modellib.MaskRCNN(mode="inference", model_dir=modelPath,
+                              config=config)
 
     # Load weights trained on MS-COCO
 
@@ -67,25 +53,27 @@ def detect(imagesDir, modelPath, classes, name, masksDir):
 
     # ## Run Object Detection
 
-    # In[ ]:
-
-
+    # TODO: Run for each image
     # Load a random image from the images folder
-    file_names = next(os.walk(imagesDir))[2]
-    a = random.choice(file_names)
-    image = skimage.io.imread(os.path.join(imagesDir, a))
+    for a in next(os.walk(imagesDir))[2]:
+        # fileNames = next(os.walk(imagesDir))[2]
+        # a = random.choice(fileNames)
+        image = skimage.io.imread(os.path.join(imagesDir, a))
 
-    # Run detection
-    results = model.detect([image], verbose=1)
+        # Run detection
+        results = model.detect([image], verbose=1)
 
-    # Visualize results
-    r = results[0]
-    print('Stat:', image, r['rois'], r['masks'], r['class_ids'],
-                                classNames, r['scores'])
-    print(a)
-    print('NEXT VISUALIZE')
-    visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
-                                classNames, r['scores'])
+        # Visualize results
+        # TODO: More images -> more indices than [0]
+        r = results[0]
+        # print('Stat:', image, r['rois'], r['masks'], r['class_ids'],
+        #                             classNames, r['scores'])
+        # print(a)
+        # print('NEXT VISUALIZE')
+        visualize.save_instances(image, r['rois'], r['masks'], r['class_ids'],
+                                 classNames, r['scores'], outputDir=masksDir,
+                                 which=outputType, title=a)
+    sys.stdout.write('ahoj')
 
 
 if __name__ == '__main__':
@@ -105,8 +93,10 @@ if __name__ == '__main__':
                         help='Name of output models')
     parser.add_argument('--masks_dir', required=True,
                         help='Name of output models')
+    parser.add_argument('--output_type', required=True,
+                        help='Type of output')
 
     args = parser.parse_args()
 
     detect(args.images_dir, args.model, args.classes.split(','), args.name,
-          args.masks_dir)
+          args.masks_dir, args.output_type)

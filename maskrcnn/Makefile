@@ -4,6 +4,7 @@ PGM = maskrcnn
 
 SUBDIRS = maskrcnnlib \
 	ann.maskrcnn.train \
+	ann.maskrcnn.detect \
 
 include $(MODULE_TOPDIR)/include/Make/Dir.make
 

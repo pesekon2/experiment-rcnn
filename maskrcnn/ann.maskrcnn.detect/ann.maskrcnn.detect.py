@@ -45,9 +45,15 @@
 #% required: yes
 #%end
 #%option G_OPT_M_DIR
-#% key: maks_output
-#% type: string
+#% key: masks_output
 #% label: Directory where masks will be saved
+#% required: yes
+#%end
+#%option
+#% key: output_type
+#% type: string
+#% label: Type of output
+#% options: areas, points
 #% required: yes
 #%end
 
@@ -56,9 +62,9 @@ import grass.script as gscript
 from grass.pygrass.utils import get_lib_path
 import sys
 import os
-from subprocess import call
+from subprocess import call, Popen, check_output
 
-path = get_lib_path(modname='maskrcnn', libname='py3train')
+path = get_lib_path(modname='maskrcnn', libname='py3detect')
 if path is None:
     grass.script.fatal('Not able to find the maskrcnn library directory.')
 
@@ -76,20 +82,24 @@ def main(options, flags):
     classes = options['classes']
     name = options['name']
     # TODO: Use GRASS temp files
-    masksDir = options['mask_output']
+    masksDir = options['masks_output']
+    outputType = options['output_type']
 
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
-    call('python3 {}{}py3train.py --images_dir={} --model={} --classes={} '
-         '--name={} --masks_dir={}'.format(
+    a = check_output('python3 {}{}py3detect.py --images_dir={} --model={} --classes={} '
+         '--name={} --masks_dir={} --output_type={}'.format(
             path, os.sep,
             imagesDir,
             modelPath,
             classes,
             name,
-            masksDir),
+            masksDir,
+            outputType),
          shell=True)
+
+    print(a, 'moje')
 
 
 if __name__ == "__main__":
