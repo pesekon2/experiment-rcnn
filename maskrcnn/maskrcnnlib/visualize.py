@@ -15,6 +15,7 @@
 import random
 import itertools
 import colorsys
+import os
 import numpy as np
 from skimage.measure import find_contours
 import matplotlib.pyplot as plt
@@ -80,7 +81,8 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def save_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None, outputDir='', which='mask'):
+                      figsize=(16, 16), ax=None, outputDir='', which='mask',
+                   colours=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -99,7 +101,7 @@ def save_instances(image, boxes, masks, class_ids, class_names,
 
     N = boxes.shape[0]
     if not N:
-        print("\n*** No instances to display *** \n")
+        print("\n*** No instances to detect in image {}*** \n".format(title))
     else:
         assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
 
@@ -108,11 +110,12 @@ def save_instances(image, boxes, masks, class_ids, class_names,
 
     # Generate random colors
     #colors = random_colors(N)
-    colors = dict()
-    for i in set(class_ids):
-        colors.update({i: (random.randint(0, 256), random.randint(0, 256),
-                           random.randint(0, 256))})
-    # colors = random_colors(len(set(class_ids)))
+    # if not colours:
+    #     colours = dict()
+    #     for i in set(class_ids):
+    #         colours.update({i: (random.uniform(0, 1), random.uniform(0, 1),
+    #                             random.uniform(0, 1))})
+    #     # colors = random_colors(len(set(class_ids)))
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
@@ -123,14 +126,14 @@ def save_instances(image, boxes, masks, class_ids, class_names,
 
     masked_image = np.zeros(image.shape)#astype(np.uint32).copy()
 
-    if which == 'polygon':
+    if which == 'areas':
         for i in range(N):
-            color = (1, 1, 1)
+            # color = (1, 1, 1)
             #color = colors[i]
-            color = colors[class_ids[i]]
-            # print(color)
-            # print(class_ids)
-            # print(i)
+            color = (colours[class_ids[i]],) * 3
+            print(color)
+            print(class_ids)
+            print(i)
 
             # Bounding box
             if not np.any(boxes[i]):
@@ -153,14 +156,9 @@ def save_instances(image, boxes, masks, class_ids, class_names,
                 verts = np.fliplr(verts) - 1
                 p = Polygon(verts, facecolor="none", edgecolor=color)
                 ax.add_patch(p)
-        ax.imshow(masked_image.astype(np.uint8), interpolation='nearest')
-        ax.set(xlim=[0, width], ylim=[height, 0], aspect=1)
-        plt.savefig(os.path.join(outputDir, title + '_mask'), dpi=dpi)
-        # plt.show()
-        plt.close()
     elif which =='points':
         for i in range(N):
-            color = (1, 1, 1)  # colors[i]
+            # color = (1, 1, 1)  # colors[i]
 
             # Bounding box
             if not np.any(boxes[i]):
@@ -196,11 +194,12 @@ def save_instances(image, boxes, masks, class_ids, class_names,
             #     verts = np.fliplr(verts) - 1
             #     p = Polygon(verts, facecolor="none", edgecolor=color)
             #     ax.add_patch(p)
-        ax.imshow(masked_image.astype(np.uint8), interpolation='nearest')
-        ax.set(xlim=[0, width], ylim=[height, 0], aspect=1)
-        plt.savefig(outputDir, dpi=dpi)
-        # plt.show()
-        plt.close()
+
+    ax.imshow(masked_image.astype(np.uint8), interpolation='nearest')
+    ax.set(xlim=[0, width], ylim=[height, 0], aspect=1)
+    plt.savefig(os.path.join(outputDir, os.path.splitext(title)[0] + '_mask'), dpi=dpi)
+    # plt.show()
+    plt.close()
 
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):

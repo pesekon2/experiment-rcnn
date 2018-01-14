@@ -25,6 +25,13 @@
 #% required: yes
 #%end
 #%option
+#% key: images_format
+#% type: string
+#% label: Format suffix of images
+#% description: .jpg, .tiff, .png, etc.
+#% required: yes
+#%end
+#%option
 #% key: model
 #% type: string
 #% label: Path to the .h5 file to use as initial values
@@ -54,7 +61,8 @@
 #% type: string
 #% label: Type of output
 #% options: areas, points
-#% required: yes
+#% answer: areas
+#% required: no
 #%end
 
 
@@ -63,6 +71,8 @@ from grass.pygrass.utils import get_lib_path
 import sys
 import os
 from subprocess import call, Popen, check_output
+from shutil import copyfile
+from random import uniform
 
 path = get_lib_path(modname='maskrcnn', libname='py3detect')
 if path is None:
@@ -84,22 +94,51 @@ def main(options, flags):
     # TODO: Use GRASS temp files
     masksDir = options['masks_output']
     outputType = options['output_type']
+    format = options['images_format']
+
+    # TODO: Check if unique
+    # TODO: (3 different brands in case of lot of classes?)
+    classesColours = [0] + [uniform(0, 1) for _ in range(len(classes.split(',')))]
 
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
-    a = check_output('python3 {}{}py3detect.py --images_dir={} --model={} --classes={} '
-         '--name={} --masks_dir={} --output_type={}'.format(
+    call('python3 {}{}py3detect.py --images_dir={} --model={} --classes={} '
+         '--name={} --masks_dir={} --output_type={} --colours={} --format={}'.format(
             path, os.sep,
             imagesDir,
             modelPath,
             classes,
             name,
             masksDir,
-            outputType),
+            outputType,
+            ','.join([str(col) for col in classesColours]),
+            format),
          shell=True)
 
-    print(a, 'moje')
+    print('Masks detected. Georeferencing masks...')
+    for referencing in [file for file in next(os.walk(imagesDir))[2] if os.path.splitext(file)[1] != format]:
+        fileName, refExtension = referencing.split(format)
+        maskFileName = fileName + '_mask.png'
+        copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension, referencing)
+
+        gscript.run_command('r.in.gdal',
+                            input=os.path.join(masksDir, maskFileName),
+                            output=fileName + '_mask',
+                            band=1,  # TODO: Change if changing to 3 bands masks
+                            overwrite=gscript.overwrite())
+
+    print('Converting masks to vectors...')
+    for i in classesColours[1:]:
+        gscript.run_command('r.mask',
+                            'r',
+                            raster=,
+                            where=)
+
+
+def copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension, referencing):
+    r2 = os.path.join(masksDir, maskFileName + refExtension)
+    copyfile(os.path.join(imagesDir, referencing), r2)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ from config import ModelConfig
 
 # Create Model and Load Trained Weights
 
-def detect(imagesDir, modelPath, classes, name, masksDir, outputType):
+def detect(imagesDir, modelPath, classes, name, masksDir, outputType, classesColours, format):
     # Create model object in inference mode.
     config = ModelConfig(name=name, numClasses=len(classes) + 1)
     model = modellib.MaskRCNN(mode="inference", model_dir=modelPath,
@@ -50,15 +50,16 @@ def detect(imagesDir, modelPath, classes, name, masksDir, outputType):
     for i in classes:
         classNames.append(i)
 
+    classesColours = [float(i) for i in classesColours.split(',')]
+
 
     # ## Run Object Detection
 
-    # TODO: Run for each image
-    # Load a random image from the images folder
-    for a in next(os.walk(imagesDir))[2]:
+    # TODO: Use the whole list instead of iteration
+    for imageFile in [file for file in next(os.walk(imagesDir))[2] if os.path.splitext(file)[1] == format]:
         # fileNames = next(os.walk(imagesDir))[2]
         # a = random.choice(fileNames)
-        image = skimage.io.imread(os.path.join(imagesDir, a))
+        image = skimage.io.imread(os.path.join(imagesDir, imageFile))
 
         # Run detection
         results = model.detect([image], verbose=1)
@@ -72,9 +73,9 @@ def detect(imagesDir, modelPath, classes, name, masksDir, outputType):
         # print('NEXT VISUALIZE')
         visualize.save_instances(image, r['rois'], r['masks'], r['class_ids'],
                                  classNames, r['scores'], outputDir=masksDir,
-                                 which=outputType, title=a)
-    sys.stdout.write('ahoj')
+                                 which=outputType, title=imageFile, colours=classesColours)
 
+    # sys.stdout.write('ahoj')
 
 if __name__ == '__main__':
 
@@ -95,8 +96,12 @@ if __name__ == '__main__':
                         help='Name of output models')
     parser.add_argument('--output_type', required=True,
                         help='Type of output')
+    parser.add_argument('--colours', required=True,
+                        help='Type of output')
+    parser.add_argument('--format', required=True,
+                        help='Format of images')
 
     args = parser.parse_args()
 
     detect(args.images_dir, args.model, args.classes.split(','), args.name,
-          args.masks_dir, args.output_type)
+          args.masks_dir, args.output_type, args.colours, args.format)
