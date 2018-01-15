@@ -98,13 +98,15 @@ def main(options, flags):
 
     # TODO: Check if unique
     # TODO: (3 different brands in case of lot of classes?)
-    classesColours = [0] + [uniform(0, 1) for _ in range(len(classes.split(',')))]
+    classesColours = [0] + [uniform(0, 1) for _ in range(
+        len(classes.split(',')))]
 
     ###########################################################
     # unfortunately, redirect everything to python3
     ###########################################################
     call('python3 {}{}py3detect.py --images_dir={} --model={} --classes={} '
-         '--name={} --masks_dir={} --output_type={} --colours={} --format={}'.format(
+         '--name={} --masks_dir={} --output_type={} --colours={} '
+         '--format={}'.format(
             path, os.sep,
             imagesDir,
             modelPath,
@@ -117,26 +119,45 @@ def main(options, flags):
          shell=True)
 
     print('Masks detected. Georeferencing masks...')
-    for referencing in [file for file in next(os.walk(imagesDir))[2] if os.path.splitext(file)[1] != format]:
+    masks = list()
+    for referencing in [file for file in next(
+            os.walk(imagesDir))[2] if os.path.splitext(file)[1] != format]:
         fileName, refExtension = referencing.split(format)
-        maskFileName = fileName + '_mask.png'
-        copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension, referencing)
+        maskName = fileName + '_mask'
+        masks.append(maskName)
+        maskFileName = maskName + '.png'
+        copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension,
+                            referencing)
 
         gscript.run_command('r.in.gdal',
                             input=os.path.join(masksDir, maskFileName),
-                            output=fileName + '_mask',
+                            output=maskName,
                             band=1,  # TODO: Change if changing to 3 bands masks
                             overwrite=gscript.overwrite())
 
     print('Converting masks to vectors...')
+    masksString = ','.join(masks)
     for i in classesColours[1:]:
-        gscript.run_command('r.mask',
-                            'r',
-                            raster=,
-                            where=)
+        for maskName in masks:
+            if i > 1:
+                gscript.run_command('g.remove',
+                                    name=masksString)
+            # TODO: Set region, use r.patch, do following for one colour...
+            # TODO: ... in previous loop
+            gscript.run_command('r.mask',
+                                raster=maskName,
+                                maskcats=i)
+            gscript.run_command('r.to.vect',
+                                input=maskName,
+                                output=maskName,
+                                type='area')
+
+        gscript.run_command(input=masksString,
+                            output=classes[i - 1])
 
 
-def copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension, referencing):
+def copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension,
+                        referencing):
     r2 = os.path.join(masksDir, maskFileName + refExtension)
     copyfile(os.path.join(imagesDir, referencing), r2)
 
