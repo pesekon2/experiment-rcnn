@@ -115,7 +115,7 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
     # Finetune layers from ResNet stage 4 and up
     print("Fine tune Resnet stage 4 and up")
     model.train(dataset_train, dataset_val,
-                learning_rate=config.LEARNING_RATE / 10, # no dividing original
+                learning_rate=config.LEARNING_RATE / 10,  # no dividing orig
                 epochs=int(epochs / 7) * 3,
                 layers='4+')
 
@@ -123,7 +123,7 @@ def train(dataset, modelPath, classes, logs, modelName, epochs=200,
     # Fine tune all layers
     print("Fine tune all layers")
     model.train(dataset_train, dataset_val,
-                learning_rate=config.LEARNING_RATE / 100, # just 10 original
+                learning_rate=config.LEARNING_RATE / 100,  # just 10 original
                 epochs=epochs,
                 layers='all')
 

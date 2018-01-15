@@ -132,28 +132,39 @@ def main(options, flags):
         gscript.run_command('r.in.gdal',
                             input=os.path.join(masksDir, maskFileName),
                             output=maskName,
-                            band=1,  # TODO: Change if changing to 3 bands masks
+                            band=1,  # TODO: Change to 3 if 3 bands masks
                             overwrite=gscript.overwrite())
 
     print('Converting masks to vectors...')
     masksString = ','.join(masks)
+    index = 0
     for i in classesColours[1:]:
         for maskName in masks:
-            if i > 1:
+            if index > 0:
                 gscript.run_command('g.remove',
-                                    name=masksString)
-            # TODO: Set region, use r.patch, do following for one colour...
+                                    'f',
+                                    name=masksString,
+                                    type='vector')
+            # TODO: Use r.patch, do following for one colour...
             # TODO: ... in previous loop
+            gscript.run_command('g.region',
+                                raster=maskName)
             gscript.run_command('r.mask',
                                 raster=maskName,
-                                maskcats=i)
+                                maskcats=i * 255)
             gscript.run_command('r.to.vect',
                                 input=maskName,
                                 output=maskName,
                                 type='area')
+            gscript.run_command('r.mask',
+                                'r')
 
-        gscript.run_command(input=masksString,
-                            output=classes[i - 1])
+        # TODO: classes split separately
+        gscript.run_command('v.patch',
+                            input=masksString,
+                            output=classes.split(',')[index - 1])
+
+        index += 1
 
 
 def copy_georeferencing(imagesDir, masksDir, maskFileName, refExtension,

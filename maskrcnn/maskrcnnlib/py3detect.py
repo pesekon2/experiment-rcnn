@@ -32,7 +32,8 @@ from config import ModelConfig
 
 # Create Model and Load Trained Weights
 
-def detect(imagesDir, modelPath, classes, name, masksDir, outputType, classesColours, format):
+def detect(imagesDir, modelPath, classes, name, masksDir, outputType,
+           classesColours, format):
     # Create model object in inference mode.
     config = ModelConfig(name=name, numClasses=len(classes) + 1)
     model = modellib.MaskRCNN(mode="inference", model_dir=modelPath,
@@ -41,7 +42,6 @@ def detect(imagesDir, modelPath, classes, name, masksDir, outputType, classesCol
     # Load weights trained on MS-COCO
 
     model.load_weights(modelPath, by_name=True)
-
 
     # COCO Class names
     # Index of the class in the list is its ID. For example, to get ID of
@@ -52,11 +52,11 @@ def detect(imagesDir, modelPath, classes, name, masksDir, outputType, classesCol
 
     classesColours = [float(i) for i in classesColours.split(',')]
 
-
     # ## Run Object Detection
 
     # TODO: Use the whole list instead of iteration
-    for imageFile in [file for file in next(os.walk(imagesDir))[2] if os.path.splitext(file)[1] == format]:
+    for imageFile in [file for file in next(
+            os.walk(imagesDir))[2] if os.path.splitext(file)[1] == format]:
         # fileNames = next(os.walk(imagesDir))[2]
         # a = random.choice(fileNames)
         image = skimage.io.imread(os.path.join(imagesDir, imageFile))
@@ -73,7 +73,8 @@ def detect(imagesDir, modelPath, classes, name, masksDir, outputType, classesCol
         # print('NEXT VISUALIZE')
         visualize.save_instances(image, r['rois'], r['masks'], r['class_ids'],
                                  classNames, r['scores'], outputDir=masksDir,
-                                 which=outputType, title=imageFile, colours=classesColours)
+                                 which=outputType, title=imageFile,
+                                 colours=classesColours)
 
     # sys.stdout.write('ahoj')
 
@@ -104,4 +105,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     detect(args.images_dir, args.model, args.classes.split(','), args.name,
-          args.masks_dir, args.output_type, args.colours, args.format)
+           args.masks_dir, args.output_type, args.colours, args.format)

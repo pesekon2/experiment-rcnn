@@ -73,8 +73,9 @@ def apply_mask(image, mask, color, alpha=0.5):
     """
     for c in range(3):
         image[:, :, c] = np.where(mask == 1,
-                                  image[:, :, c] *
-                                  (1 - alpha) + alpha * color[c] * 255,
+                                  # image[:, :, c] *
+                                  # (1 - alpha) + alpha * color[c] * 255,
+                                  image[:, :, c] + color[c] * 255,
                                   image[:, :, c])
     return image
 
@@ -130,10 +131,7 @@ def save_instances(image, boxes, masks, class_ids, class_names,
         for i in range(N):
             # color = (1, 1, 1)
             #color = colors[i]
-            color = (colours[class_ids[i]],) * 3
-            print(color)
-            print(class_ids)
-            print(i)
+            colour = (colours[class_ids[i]],) * 3
 
             # Bounding box
             if not np.any(boxes[i]):
@@ -143,7 +141,7 @@ def save_instances(image, boxes, masks, class_ids, class_names,
 
             # Mask
             mask = masks[:, :, i]
-            masked_image = apply_mask(masked_image, mask, color)
+            masked_image = apply_mask(masked_image, mask, colour)
 
             # Mask Polygon
             # Pad to ensure proper polygons for masks that touch image edges.
@@ -154,11 +152,12 @@ def save_instances(image, boxes, masks, class_ids, class_names,
             for verts in contours:
                 # Subtract the padding and flip (y, x) to (x, y)
                 verts = np.fliplr(verts) - 1
-                p = Polygon(verts, facecolor="none", edgecolor=color)
+                p = Polygon(verts, facecolor="none", edgecolor=colour)
                 ax.add_patch(p)
     elif which =='points':
         for i in range(N):
             # color = (1, 1, 1)  # colors[i]
+            colour = (colours[class_ids[i]],) * 3
 
             # Bounding box
             if not np.any(boxes[i]):
@@ -167,7 +166,7 @@ def save_instances(image, boxes, masks, class_ids, class_names,
             y1, x1, y2, x2 = boxes[i]
             p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
                                   alpha=0.7, linestyle="dashed",
-                                  edgecolor=color, facecolor='none')
+                                  edgecolor=colour, facecolor='none')
             ax.add_patch(p)
 
             # # Label

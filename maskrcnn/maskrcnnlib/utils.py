@@ -357,7 +357,7 @@ class Dataset(object):
             for image in glob.iglob(os.path.join(directory, '*.jpg')):
                 # TODO: Smarter image_id than name of directory
                 self.add_image(modelName,
-                               image_id = os.path.split(directory)[1],
+                               image_id=os.path.split(directory)[1],
                                path=image)
 
     def get_mask(self, image_id):

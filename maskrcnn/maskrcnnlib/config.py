@@ -28,7 +28,7 @@ class ModelConfig(object):
     # are based on a Resnet101 backbone.
     BACKBONE_STRIDES = [4, 8, 16, 32, 64]
 
-    ###### RPN ######
+    ## RPN ##
     # Length of square anchor side in pixels
     RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
 
@@ -39,7 +39,7 @@ class ModelConfig(object):
     # Anchor stride
     # If 1 then anchors are created for each cell in the backbone feature map.
     # If 2, then anchors are created for every other cell, and so on.
-    RPN_ANCHOR_STRIDE = 1 # 2 before change
+    RPN_ANCHOR_STRIDE = 1  # 2 before change
 
     # Non-max suppression threshold to filter RPN proposals.
     # You can reduce this during training to generate more propsals.
@@ -91,7 +91,7 @@ class ModelConfig(object):
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimzer
     # implementation.
-    LEARNING_RATE = 0.001 # 0.002 before change
+    LEARNING_RATE = 0.001  # 0.002 before change
     LEARNING_MOMENTUM = 0.9
 
     # Weight decay regularization
@@ -121,14 +121,13 @@ class ModelConfig(object):
         self.GPU_COUNT = GPUcount
 
         # Number of classes (including background)
-        self.NUM_CLASSES = numClasses # COCO has 80 classes
-        self.TRAIN_ROIS_PER_IMAGE = trainROIsPerImage#32
+        self.NUM_CLASSES = numClasses
+        self.TRAIN_ROIS_PER_IMAGE = trainROIsPerImage
         self.STEPS_PER_EPOCH = stepsPerEpoch // self.IMAGES_PER_GPU
         self.MINI_MASK_SHAPE = miniMaskShape
         self.VALIDATION_STEPS = validationSteps
         self.IMAGE_MAX_DIM = imageMaxDim
         self.IMAGE_MIN_DIM = imageMinDim
-
 
         # Effective batch size
         self.BATCH_SIZE = self.IMAGES_PER_GPU * self.GPU_COUNT
